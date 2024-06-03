@@ -1,0 +1,85 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: '0'
+
+      - name: Custom Version Bump
+        run: |
+          LAST_TAG=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            NEW_TAG="0.61.2"
+          else
+            IFS='.' read -ra ADDR <<< "$LAST_TAG"
+            MAJOR=${ADDR[0]}
+            MINOR=${ADDR[1]}
+            PATCH=${ADDR[2]}
+            if [ "$PATCH" -ge 10 ]; then
+              PATCH=0
+              MINOR=$(($MINOR + 1))
+            else
+              PATCH=$(($PATCH + 1))
+            fi
+            NEW_TAG="$MAJOR.$MINOR.$PATCH"
+          fi
+          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
+          echo "TAG=$NEW_TAG" >> $GITHUB_ENV
+
+      - name: Create and Push Tag
+        run: |
+          git tag ${{ env.NEW_TAG }}
+          git push origin ${{ env.NEW_TAG }}
+
+  build:
+    runs-on: ubuntu-latest
+    needs: ["tag"]
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Build project
+        run: yarn build
+
+      - name: Get latest tag
+        id: get_tag
+        run: |
+          echo "::set-output name=TAG::$(git describe --tags --abbrev=0)"
+
+      - name: Package /dist directory
+        run: zip -r pipeline-wallet-${{ steps.get_tag.outputs.TAG }}.zip dist/
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: pipeline-wallet-${{ steps.get_tag.outputs.TAG }}.zip
+          tag: ${{ steps.get_tag.outputs.TAG }}
+          artifactContentType: application/zip
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: pipeline-wallet-${{ steps.get_tag.outputs.TAG }}.zip
+          tag_name: ${{ steps.get_tag.outputs.TAG }}

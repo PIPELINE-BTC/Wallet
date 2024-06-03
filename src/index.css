@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  font-family: 'Roboto', sans-serif;
+  background-color: #131212;
+}
+
+*:focus {
+  outline: none;
+}
+
+::-webkit-scrollbar {
+  width: 3px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgb(255, 165, 0, 1);
+  border-radius: 0px;
+  border: none;
+}
+.spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid #fff; 
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@layer components {
+  input:not([type="checkbox"]):not([type="radio"]) {
+    @apply bg-dark-gray py-3 px-5 w-full rounded-md text-white placeholder:text-gray outline-none focus-visible:outline-none;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]).btn-reset {
+    @apply bg-transparent p-0 text-base text-sm;
+  }
+
+  label {
+    @apply mb-1.5 text-white text-sm;
+  }
+
+  .notification {
+    @apply p-3 bg-modal-dark text-white rounded-md flex items-center z-50 mb-2;
+  }
+
+  .btn {
+    @apply text-center py-3 font-medium text-lg block;
+  }
+
+  .btn-primary {
+    @apply bg-orange text-white;
+  }
+
+  .btn-secondary {
+    @apply bg-dark-gray text-white;
+  }
+
+  .btn:disabled {
+    @apply bg-dark-gray text-white;
+  }
+
+  .validation-error {
+    @apply text-red-500 text-xs font-semibold mt-1;
+  }
+
+  .tab-button {
+    @apply text-white text-base p-2.5 border-b-2;
+  }
+}
+
+.nav-header {
+  display: grid;
+  grid-template-columns: 0.5fr 1fr 0.5fr;
+}
+
+.radio-input {
+  margin: 0;
+  width: 26px;
+  height: 26px;
+  position: absolute;
+  opacity: 0;
+}
+
+.radio-input:checked + span {
+  border: 1px solid #FFA500;
+  background: #FFA500;
+}
+
+.custom-radio {
+  cursor: pointer;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #9a9a9a;
+  border-radius: 50%;
+  position: relative;
+  background: #131212;
+  transition: all 0.3s ease-in-out;
+}
+
+.fill-white svg path {
+  fill: #fff;
+}
+
+.fill-orange svg path {
+  fill: #FFA500;
+}
