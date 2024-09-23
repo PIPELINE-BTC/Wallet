@@ -5,8 +5,7 @@ import { connect } from "../bitcoin/wallet";
 
 const Connect: FC<any> = () => {
   const handleSubmit = async () => {
-    const cnct = await connect();
-    console.log(cnct);
+     await connect();
   };
 
   return (

@@ -13,6 +13,15 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       top: 100,
       left: 100,
     });
+
+    chrome.runtime.onMessage.addListener(function (popupMessage) {
+      if (popupMessage.action === "createTransactionFromPsbt") {
+        chrome.storage.local.get("hex", (result) => {
+          sendResponse({ transaction: result });
+        });
+      }
+    });
+
     return true;
   } else if (request.action === "connect") {
     chrome.windows.create({
@@ -26,18 +35,41 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       left: 100,
     });
 
+
     chrome.runtime.onMessage.addListener(function (popupMessage) {
       if (popupMessage.action === "connectToSite") {
-        sendResponse({ connectedWallet: popupMessage.address });
+
+        let pubInternalKey;
+
+        chrome.storage.local.get("pubInternalKey", (result) => {
+          pubInternalKey = result.pubInternalKey;
+        });
+        chrome.storage.local.get("connectedWallet", (result) => {
+          sendResponse({ connectedWallet: result.connectedWallet, pubInternalKey: pubInternalKey});
+        });
+      }
+      return true;
+    });
+
+
+    chrome.runtime.onMessage.addListener(function (popupMessage) {
+      if (popupMessage.action === "connectToSite") {
+        
+
+        chrome.storage.local.get("connectedWallet", (result) => {
+          sendResponse({ connectedWallet: result  });
+        });
+      }
+      if (popupMessage.action === "getAddress") {
       }
       return true;
     });
 
     return true;
-  } else if (request.action === "createPsbt") {
+  } else if (request.action === "signPsbt") {
     chrome.windows.create({
       url: chrome.runtime.getURL(
-        `index.html?path=${request.path}&expanded=true&recipient=${request.recipient}&amount=${request.amount}&ticker=${request.ticker}&id=${request.id}`
+        `index.html?path=${request.path}&expanded=true&psbtBase64=${request.psbtBase64}`
       ),
       type: "popup",
       width: 355,
@@ -46,11 +78,9 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       left: 100,
     });
 
-    chrome.runtime.onMessage.addListener(function (popupMessage) {
-      if (popupMessage.action === "createPsbtForSite") {
-        chrome.storage.local.get("psbt", (result) => {
-          sendResponse({ psbt: result.psbt });
-        });
+    chrome.runtime.onMessage.addListener(function (payload) {
+      if (payload.action === "signPsbtSuccess") {
+        sendResponse({ signedPsbtBase64: payload.signedPsbtBase64 });
       }
     });
 
@@ -64,6 +94,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     return true;
   }
 });
+
 
 setInterval(async () => {
   try {

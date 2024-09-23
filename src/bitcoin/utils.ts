@@ -1,4 +1,6 @@
 import { Buffer } from "buffer";
+import * as bitcoin from 'bitcoinjs-lib';
+
 
 export function textToHex(text: string) {
   const encoder = new TextEncoder().encode(text);
@@ -52,3 +54,31 @@ export function charRange(start: string, stop: string) {
 
 export const toXOnly = (pubKey: Buffer) =>
   pubKey.length === 32 ? pubKey : pubKey.slice(1, 33);
+
+export function generateTxidFromHash(hash: Buffer) {
+  return hash.reverse().toString('hex');
+}
+
+export function isP2SHAddress(
+  address: string,
+  network: bitcoin.Network,
+): boolean {
+  try {
+    const { version, hash } = bitcoin.address.fromBase58Check(address);
+    return version === network.scriptHash && hash.length === 20;
+  } catch (error) {
+    return false;
+  }
+}
+
+export function base64ToHex(base64: string): string {
+  const buffer = Buffer.from(base64, 'base64');
+
+  return buffer.toString('hex');
+}
+
+export function hexToBase64(hex: string): string {
+  const buffer = Buffer.from(hex, 'hex');
+  
+  return buffer.toString('base64');
+}

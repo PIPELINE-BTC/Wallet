@@ -1,35 +1,55 @@
 /* eslint-disable no-undef */
+
 window.addEventListener("sendTransaction", (event) => {
   try {
-    chrome.runtime.sendMessage(chrome.runtime.id, {
-      action: "sendTransaction",
-      path: "/send",
-      recipient: event.detail.recipient,
-      amount: event.detail.amount,
-      psbt: event.detail.psbt,
-    });
+    chrome.runtime.sendMessage(
+      chrome.runtime.id,
+      {
+        action: "sendTransaction",
+        path: "/create-psbt",
+        recipient: event.detail.recipient,
+        amount: event.detail.amount,
+        psbt: event.detail.psbt,
+      },
+      function (response) {
+        const txid = response;
+        window.postMessage(
+          { action: "createTransactionFromPsbt", txid: response },
+          "*"
+        );
+        return { txid: txid };
+      }
+    );
   } catch (e) {
     console.log(e);
   }
 });
+
+
 
 window.addEventListener("connect", (event) => {
   if (event.type === "connect") {
     try {
       // eslint-disable-next-line no-undef
       chrome.runtime.sendMessage(
+        chrome.runtime.id,
         {
           action: "connect",
           path: "/connect",
           url: window.location.href,
         },
         function (response) {
-          const currentAddress = response.connectedWallet.testnet;
+          const currentAddress = response.connectedWallet;
+          const pubInternalKey = response.pubInternalKey;
           window.postMessage(
-            { action: "finishConnect", address: response.connectedWallet.testnet },
+            {
+              action: "finishConnect",
+              address: currentAddress,
+              pubInternalKey: pubInternalKey,
+            },
             "*"
           );
-          return { address: currentAddress };
+          return { address: currentAddress, pubInternalKey: pubInternalKey };
         }
       );
     } catch (e) {
@@ -38,25 +58,23 @@ window.addEventListener("connect", (event) => {
   }
 });
 
-window.addEventListener("createPsbt", (event) => {
-  if (event.type === "createPsbt") {
+window.addEventListener("signPsbt", (event) => {
+  if (event.type === "signPsbt") {
     try {
       chrome.runtime.sendMessage(
         chrome.runtime.id,
         {
-          action: "createPsbt",
-          path: "/create-psbt",
-          recipient: event.detail.recipient,
-          amount: event.detail.amount,
-          ticker: event.detail.ticker,
+          action: "signPsbt",
+          path: "/signPsbt",
+          psbtBase64: event.detail.psbtBase64,
         },
         function (response) {
-          const psbt = response.psbt;
+          const signedPsbtBase64 = response.signedPsbtBase64;
           window.postMessage(
-            { action: "createdPsbt", psbt: response.psbt },
+            { action: "signPsbt", signedPsbtBase64: response.signedPsbtBase64 },
             "*"
           );
-          return { psbt: psbt };
+          return { signedPsbtBase64: signedPsbtBase64 };
         }
       );
     } catch (e) {
@@ -66,43 +84,27 @@ window.addEventListener("createPsbt", (event) => {
 });
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-  if (request.type === "createdPsbt") {
-    const psbt = request.psbt;
-    // Do something with the psbt...
-
-    const event = new CustomEvent("createdPsbt", {
-      detail: { psbt },
-    });
-
-    window.dispatchEvent(event);
-
-    // Optionally, send a response.
-    sendResponse({ result: "success" });
-  }
   if (request.type === "connect") {
     const address = request.address;
-    // Do something with the address...
-
+    const pubInternalKey = request.pubInternalKey;
     const event = new CustomEvent("finishConnect", {
-      detail: { address },
+      detail: {
+        address, pubInternalKey,
+      },
     });
     window.dispatchEvent(event);
-
-    // Optionally, send a response.
     sendResponse({ result: "success" });
   }
   if (request.type === "sendTransaction") {
     const txid = request.txid;
-    // Do something with the txid...
-
     const event = new CustomEvent("sendTransaction", {
       detail: { txid },
     });
     window.dispatchEvent(event);
-
-    // Optionally, send a response.
     sendResponse({ result: "success" });
   }
+  if (request.type === "getAddress") { }
+
   return true;
 });
 

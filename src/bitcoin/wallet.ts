@@ -148,7 +148,7 @@ export async function getBalance(address: string) {
   let utxoUrl, assetsUrl;
 
   if (selectedNetwork === "testnet") {
-    utxoUrl = `https://blockstream.info/testnet/api/address/${address}/utxo`;
+    utxoUrl = `https://mempool.space/testnet/api/address/${address}/utxo`;
     assetsUrl = `https://data.ppline.app:5099/getAddrDD?addr=${address}`;
   } else {
     utxoUrl = `https://data3.ppline.app:5005/api/address/${address}/utxo`;
@@ -228,7 +228,7 @@ export const getTokens = async (address: string) => {
 
     if (selectedNetwork === "testnet") {
       assetsUrl = `https://data.ppline.app:5099/getAddrDD?addr=${address}`;
-      mempoolUrl = `https://blockstream.info/testnet/api/address/${address}/txs/mempool`;
+      mempoolUrl = `https://mempool.space/testnet/api/address/${address}/txs/mempool`;
     } else {
       assetsUrl = `https://data2.ppline.app:5098/getAddrD?addr=${address}`;
       mempoolUrl = `https://mempool.space/api/address/${address}/txs/mempool`;

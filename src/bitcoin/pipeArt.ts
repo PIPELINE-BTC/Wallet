@@ -89,6 +89,7 @@ export async function getPipeArtData(
 
     return pipeArtItem;
   }
+else {
 
   const data = witnessD ? witnessD : await fetchTxData(pipeData.txHash, network);
   const dataRaw: any[] = [];
@@ -163,9 +164,11 @@ export async function getPipeArtData(
 
   return pipeArtItem;
 }
+  
+}
 
 export async function fetchTxData(txHash: string, network:string = "livenet"): Promise<any> {
-  const url = network === "livenet" ? `https://mempool.space/api/tx/${txHash}`:`https://mempool.space/testnet/api/tx/${txHash}`;
+  const url = network === "livenet" ? `https://data2.ppline.app:5020/api/tx/${txHash}`:`https://mempool.space/testnet/api/tx/${txHash}`;
   const response = await fetch(url);
 
   if (response.status != 200) {

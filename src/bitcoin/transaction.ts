@@ -17,7 +17,42 @@ import axios from "axios";
 import { accessService } from "../background";
 
 import { calculateFeeBySize, estimateFee } from "./wallet";
-import { toBytes, toInt26, textToHex } from "./utils";
+import { toBytes, toInt26, textToHex, base64ToHex, hexToBase64 } from "./utils";
+
+export const signPsbt = async (psbtHex: string, index = 0) => {
+  const psbtUncoded = hexToBase64(psbtHex);
+
+  const selectedNetwork = accessService.store.network;
+  const network =
+    selectedNetwork === "testnet"
+      ? bitcoin.networks.testnet
+      : bitcoin.networks.bitcoin;
+  const mnemonic = accessService.store.currentAccount.mnemonic;
+  bitcoin.initEccLib(ecc);
+
+  const psbt = bitcoin.Psbt.fromBase64(psbtUncoded, { network: network });
+
+  let childNode, childNodeXOnlyPubkey;
+
+  const bip32 = BIP32Factory(ecc);
+
+  const seed = await bip39.mnemonicToSeed(mnemonic);
+  const rootKey = bip32.fromSeed(seed, network);
+  childNode = rootKey.derivePath(`m/86'/0'/0'/0/${index}`);
+  childNodeXOnlyPubkey = toXOnly(childNode.publicKey);
+
+  const tweakedChildNode = childNode.tweak(
+    bitcoin.crypto.taggedHash("TapTweak", childNodeXOnlyPubkey)
+  );
+
+  for (let i = 0; i < psbt.inputCount; i++) {
+    psbt.signInput(i, tweakedChildNode);
+  }
+  const signedPsbtBase64 = psbt.toBase64();
+  const signedPsbtHex = base64ToHex(signedPsbtBase64);
+
+  return { signedPsbtHex };
+};
 
 export const sendSats = async (
   mnemonic,
@@ -62,7 +97,7 @@ export const sendSats = async (
   let utxoUrl, assetsUrl;
 
   if (selectedNetwork === "testnet") {
-    utxoUrl = `https://blockstream.info/testnet/api/address/${address}/utxo`;
+    utxoUrl = `https://mempool.space/testnet/api/address/${address}/utxo`;
     assetsUrl = `https://data.ppline.app:5099/getAddrDD?addr=${address}`;
   } else {
     utxoUrl = `https://data3.ppline.app:5005/api/address/${address}/utxo`;
@@ -154,7 +189,7 @@ export const sendSats = async (
     let hexUrl;
 
     if (selectedNetwork === "testnet") {
-      hexUrl = `https://blockstream.info/testnet/api/tx/${input.hash}/hex`;
+      hexUrl = `https://mempool.space/testnet/api/tx/${input.hash}/hex`;
     } else {
       hexUrl = `https://data3.ppline.app:5005/api/tx/${input.hash}/hex`;
     }
@@ -239,7 +274,7 @@ export const sendSats = async (
 
         let hexUrl;
         if (selectedNetwork === "testnet") {
-          hexUrl = `https://blockstream.info/testnet/api/tx/${input.hash}/hex`;
+          hexUrl = `https://mempool.space/testnet/api/tx/${input.hash}/hex`;
         } else {
           hexUrl = `https://data3.ppline.app:5005/api/tx/${inputD.hash}/hex`;
         }
@@ -284,7 +319,7 @@ export const sendSats = async (
   let pushURL;
 
   if (selectedNetwork === "testnet") {
-    pushURL = `https://blockstream.info/testnet/api/tx`;
+    pushURL = `https://mempool.space/testnet/api/tx`;
     pushURL = `https://data.ppline.app:5099/push`;
 
   } else {
@@ -354,240 +389,20 @@ function selectTokenRelatedUtxos(tokens: any[], ticker: string, id: string, requ
 
 export const sendTransactionByPSBT = async (psbtData: string) => {
   const selectedNetwork = accessService.store.network;
-  const response = await axios.post(
-    `https://mempool.space/${selectedNetwork}/api/tx`,
-    psbtData,
-    {
-      headers: {
-        "Content-Type": "text/plain",
-      },
-    }
-  );
+
+  const pushURL = `https://data3.ppline.app:5005/push`;
+
+  const response = await axios.post(pushURL, psbtData, {
+    headers: { "Content-Type": "text/plain" },
+  });
 
   return response.data;
 };
 
-export const completeAndSendPsbt = async (psbtData: string, to: string) => {
-  const psbt = await completePsbt(psbtData, to);
-  const response = await sendTransactionByPSBT(psbt);
-  return response;
-};
-
-// ALL PSBT FUNCTIONS ARE NOT READY YET, DONT USE IT LIKE THIS
-export const createTransferTokenPsbt = async (
-  ticker,
-  index = 0,
-  to,
-  id,
-  amount
-) => {
-  const mnemonic = accessService.store.currentAccount.mnemonic;
-  bitcoin.initEccLib(ecc);
-  const seed = await bip39.mnemonicToSeed(mnemonic);
-  const bip32 = BIP32Factory(ecc);
-  const root = bip32.fromSeed(seed, bitcoin.networks.testnet);
-  const path = `m/86'/0'/0'/0/${index}`;
-  const childNode = root.derivePath(path);
-  const childNodeXOnlyPubkey = toXOnly(childNode.publicKey);
+export const completePsbt = async (psbtHex, to, index = 0) => {
   const selectedNetwork = accessService.store.network;
 
-  // const feeRate = await estimateFee();
-  // const txfee = Math.floor(feeRate.fastestFee);
-
-  const txfee = 1;
-
-  const ec = new TextEncoder();
-
-  const { address } = bitcoin.payments.p2tr({
-    internalPubkey: childNodeXOnlyPubkey,
-    network: bitcoin.networks.testnet,
-  });
-
-  const tweakedChildNode = childNode.tweak(
-    bitcoin.crypto.taggedHash("TapTweak", childNodeXOnlyPubkey)
-  );
-
-  const transferAmount = amount;
-
-  const network =
-    selectedNetwork === "livenet"
-      ? bitcoin.networks.bitcoin
-      : bitcoin.networks.testnet;
-
-  let utxoUrl, assetsUrl, hexUrl;
-
-  if (selectedNetwork === "testnet") {
-    utxoUrl = `https://mempool.space/${selectedNetwork}/api/address/${address}/utxo`;
-    assetsUrl = `https://data.ppline.app:5099/getAddrDD?addr=${address}`;
-    hexUrl = `https://mempool.space/${selectedNetwork}/api/tx/${utxo.txid}/hex`;
-  } else {
-    utxoUrl = `https://data3.ppline.app:5005/api/address/${address}/utxo`;
-    assetsUrl = `https://data2.ppline.app:5098/getAddrD?addr=${address}`;
-    hexUrl = `https://data3.ppline.app:5005/api/tx/${utxo.txid}/hex`;
-  }
-
-  const [utxosResponse, tokensResponse, ordinalsTokensResponse] = await Promise.all([
-    axios.get(utxoUrl),
-    axios.get(assetsUrl),
-    axios.get(`https://api.hiro.so/ordinals/v1/inscriptions?address=${address}&offset=0&limit=60`)
-  ]);
-
-  const utxos = utxosResponse.data;
-  const tokens = tokensResponse.data;
-  const ordinalsTokens = ordinalsTokensResponse.data.results;
-
-  let calculatedFee = 0;
-
-  let psbt = new bitcoin.Psbt({
-    network,
-  });;
-
-  let totalInputValue = 0;
-
-  const usedUtxos = new Set();
-
-  for (const utxo of utxos) {
-
-    if (isUtxoAToken(utxo, tokens, ordinalsTokens)) {
-      continue;
-    }
-
-    if (utxo.vout >= decodedTx.outs.length) {
-      continue;
-    }
-
-    if (usedUtxos.has(utxo.txid + ":" + utxo.vout)) {
-      continue;
-    }
-
-    usedUtxos.add(utxo.txid + ":" + utxo.vout);
-
-    const rawTx = await axios.get(
-      hexUrl
-    );
-
-    const decodedTx = decodeBtcRawTx(rawTx.data);
-    const utxoScript = Buffer.from(decodedTx.outs[utxo.vout].script, "hex");
-
-    const tx = bitcoin.Transaction.fromHex(rawTx.data);
-    const nonWitnessUtxo = tx.toBuffer();
-
-    totalInputValue += utxo.value;
-
-    psbt.addInput({
-      hash: utxo.txid,
-      index: utxo.vout,
-      witnessUtxo: {
-        script: utxoScript,
-        value: utxo.value,
-      },
-      tapInternalKey: childNodeXOnlyPubkey,
-    });
-  }
-
-  const transferAmountHex = transferAmount;
-  const outputIndex = 2;
-
-  const balanceSat = totalInputValue;
-  const changeSat = balanceSat - calculatedFee - 546 * 2;
-
-  const myToken = tokens.find(
-    (tkn) => tkn.ticker?.toLowerCase() === ticker?.toLowerCase()
-  );
-
-  if (myToken && myToken.amt > transferAmount) {
-    psbt.addOutput({
-      address: address,
-      value: 546,
-    });
-
-    if (changeSat > 0) {
-      psbt.addOutput({
-        address: address,
-        value: changeSat,
-      });
-    }
-
-  } else {
-    psbt.addOutput({
-      address: address,
-      value: balanceSat - 546 - calculatedFee,
-    });
-  }
-
-  let data = [
-    bitcoin.opcodes.OP_RETURN,
-    Buffer.from("P"),
-    Buffer.from("T"),
-    Buffer.from(toBytes(toInt26(ticker))),
-    Buffer.from(toBytes(BigInt(id))),
-    Buffer.from(toBytes(BigInt(outputIndex))),
-    Buffer.from(textToHex("" + transferAmountHex), "hex"),
-  ];
-
-  if (myToken && myToken.amt > transferAmount) {
-    const transferChange = myToken.amt - transferAmount;
-    const changeData = [
-      Buffer.from(toBytes(toInt26(ticker))),
-      Buffer.from(toBytes(BigInt(id))),
-      Buffer.from(toBytes(BigInt(1))),
-      Buffer.from(textToHex("" + transferChange), "hex"),
-    ];
-
-    data = [...data, ...changeData];
-  }
-
-  const tapscriptBitcoin = bitcoin.script.compile(data);
-
-  psbt.addOutput({
-    script: tapscriptBitcoin,
-    value: 0,
-  });
-
-  // const sighashType = [
-  //   bitcoin.Transaction.SIGHASH_NONE |
-  //     bitcoin.Transaction.SIGHASH_ANYONECANPAY,
-  // ];
-
-  // const sighashType = [bitcoin.Transaction.SIGHASH_NONE];
-
-  for (let i = 0; i < psbt.inputCount; i++) {
-    psbt.signInput(i, tweakedChildNode /*, sighashType*/);
-  }
-
-  const rawTx = psbt.extractTransaction(true);
-  const vsize = rawTx.virtualSize();
-
-  calculatedFee = vsize * txfee;
-
-  const txHex = psbt.toBase64();
-
-  localStorage.setItem("pipeWalletTokenPsbt", txHex);
-
-  await chrome.storage.local.set({
-    psbt: txHex,
-  });
-
-  await chrome.tabs.query({ active: true, currentWindow: true });
-
-  await chrome.runtime.sendMessage({
-    action: "createPsbtForSite",
-    type: "createPsbtForSite",
-    psbt: txHex,
-  });
-
-  await chrome.runtime.sendMessage({
-    type: "createPsbt",
-    psbt: txHex,
-  });
-
-  return txHex;
-};
-
-export const completePsbt = async (psbtBase64, to, index = 0) => {
-  const selectedNetwork = accessService.store.network;
-
-  const decodedBase64Psbt = decodeURIComponent(psbtBase64);
+  const decodedBase64Psbt = hexToBase64(psbtHex);
 
   const psbt = bitcoin.Psbt.fromBase64(decodedBase64Psbt, {
     network: bitcoin.networks.testnet,
@@ -604,7 +419,7 @@ export const completePsbt = async (psbtBase64, to, index = 0) => {
       ? bitcoin.networks.bitcoin
       : bitcoin.networks.testnet;
 
-  const path = `m/86'/0'/0'/0/${index}`; 
+  const path = `m/86'/0'/0'/0/${index}`;
   const seed = await bip39.mnemonicToSeed(mnemonic);
   const rootKey = bip32.fromSeed(seed);
 
@@ -621,17 +436,32 @@ export const completePsbt = async (psbtBase64, to, index = 0) => {
     value: 546,
   });
 
-  const psbtHex = psbt.finalizeAllInputs().extractTransaction().toHex();
+  const txHex = psbt.finalizeAllInputs().extractTransaction().toHex();
 
   const response = await axios.post(
     `https://mempool.space/${selectedNetwork}/api/tx`,
-    psbtHex,
+    txHex,
     {
       headers: {
         "Content-Type": "text/plain",
       },
     }
   );
+
+  await chrome.storage.local.set({ hash: response.data });
+
+  await chrome.tabs.query({ active: true, currentWindow: true });
+
+  await chrome.runtime.sendMessage({
+    action: "createTransactionFromPsbt",
+    type: "createTransactionFromPsbt",
+    psbt: response.data,
+  });
+
+  await chrome.runtime.sendMessage({
+    type: "createTransaction",
+    psbt: response.data,
+  });
 
   return response.data;
 };
@@ -691,7 +521,7 @@ export const sendTransferTransaction = async (
   let utxoUrl, assetsUrl;
 
   if (selectedNetwork === "testnet") {
-    utxoUrl = `https://blockstream.info/testnet/api/address/${address}/utxo`;
+    utxoUrl = `https://mempool.space/testnet/api/address/${address}/utxo`;
     assetsUrl = `https://data.ppline.app:5099/getAddrDD?addr=${address}`;
   } else {
     utxoUrl = `https://data3.ppline.app:5005/api/address/${address}/utxo`;
@@ -818,7 +648,7 @@ export const sendTransferTransaction = async (
     let hexUrl;
 
     if (selectedNetwork === "testnet") {
-      hexUrl = `https://blockstream.info/testnet/api/tx/${input.hash}/hex`;
+      hexUrl = `https://mempool.space/testnet/api/tx/${input.hash}/hex`;
     } else {
       hexUrl = `https://data3.ppline.app:5005/api/tx/${input.hash}/hex`;
     }
@@ -960,7 +790,7 @@ export const sendTransferTransaction = async (
 
       let hexUrl;
       if (selectedNetwork === "testnet") {
-        hexUrl = `https://blockstream.info/testnet/api/tx/${inputD.hash}/hex`;
+        hexUrl = `https://mempool.space/testnet/api/tx/${inputD.hash}/hex`;
       } else {
         hexUrl = `https://data3.ppline.app:5005/api/tx/${inputD.hash}/hex`;
       }
@@ -1015,7 +845,7 @@ export const sendTransferTransaction = async (
   let pushURL;
 
   if (selectedNetwork === "testnet") {
-    pushURL = `https://blockstream.info/testnet/api/tx`;
+    pushURL = `https://mempool.space/testnet/api/tx`;
   } else {
     pushURL = `https://data3.ppline.app:5005/push`;
   }

@@ -1,4 +1,5 @@
 (function () {
+
   window.pipe = window.pipe || {};
 
   window.address = window?.pipe?.address || null;
@@ -15,9 +16,9 @@
     window.dispatchEvent(event);
   };
 
-  window.pipe.createPsbt = function (recipient, amount, ticker) {
-    const event = new CustomEvent("createPsbt", {
-      detail: { amount, ticker, recipient },
+  window.pipe.signPsbt = function (psbtBase64) {
+    const event = new CustomEvent("signPsbt", {
+      detail: { psbtBase64 },
     });
     window.dispatchEvent(event);
   };
@@ -28,18 +29,27 @@
       if (result.data.action === "finishConnect") {
         if (result.data.address) {
           window.pipe.address = result.data.address;
+          window.pipe.pubInternalKey = result.data.pubInternalKey;
 
           const connectEvent = new CustomEvent("connectToSite", {
-            detail: { connectedWallet: result.data.address },
+            detail: { connectedWallet: result.data.address, pubInternalKey: result.data.pubInternalKey },
           });
           window.dispatchEvent(connectEvent);
         }
       }
-      if (result.data.action === "createdPsbt") {
-        const createdPsbtEvent = new CustomEvent("createPsbtForSite", {
-          detail: { psbt: result.data.psbt },
+
+      if (result.data.action === "signPsbt") {
+        const createdPsbtEvent = new CustomEvent("signPsbtFromExtension", {
+          detail: { signedPsbtBase64: result.data.signedPsbtBase64 },
         });
         window.dispatchEvent(createdPsbtEvent);
+      }
+
+      if (result.data.action === "createdTransaction") {
+        const createdTransactionEvent = new CustomEvent("createTransactionFromPsbt", {
+          detail: { transaction: result.data.transaction },
+        });
+        window.dispatchEvent(createdTransactionEvent);
       }
     },
     false

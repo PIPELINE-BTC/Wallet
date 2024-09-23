@@ -20,14 +20,10 @@ const SignWebsite = () => {
 
   const handleAddWebsite = async () => {
     accessService.store.addWebsite(link);
-    // const result =
     await connect();
 
-    // if(result) {
-      setTimeout(() => window.close(), 500);
-    // }
-    // navigate('/home');
-    // window.close();
+    setTimeout(() => window.close(), 500);
+
   };
 
   return (

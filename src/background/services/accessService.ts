@@ -141,11 +141,6 @@ class AccessService {
     await this.store.setPassword(data.newPassword);
     await this.store.boot(data.newPassword);
   };
-
-  createPsbt = async () => {
-    throw new Error('Not implemented: createPsbt');
-    // return this.store.createPsbt();
-  }
 }
 
 export default new AccessService();

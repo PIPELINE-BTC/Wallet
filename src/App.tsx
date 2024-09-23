@@ -18,7 +18,7 @@ import Transaction from "./screens/Transaction";
 import Accounts from "./screens/Accounts";
 import CreateNewAccount from "./screens/CreateNewAccount";
 import NftDetails from "./screens/NftDetails";
-import CreatePsbt from "./screens/CreatePsbt";
+import SignPsbt from "./screens/SignPsbt";
 import SignWebsite from "./screens/SignWebsite";
 import ConnectedSites from "./screens/ConnectedSites";
 import EditWallet from "./screens/EditWallet";
@@ -28,6 +28,7 @@ import AddressBook from "./screens/AddressBook";
 import ShowSecret from "./screens/ShowSecret";
 import Notifications from "./common/Notifications";
 import Networks from "./screens/Networks";
+
 
 function App() {
   const getSize = () => {
@@ -58,7 +59,7 @@ function App() {
           <Route path="/nft/:id" element={<NftDetails />} />
           <Route path="/wallet/edit/:id" element={<EditWallet />} />
           <Route path="/accounts/edit/:id" element={<EditAccount />} />
-          <Route path="/create-psbt" element={<CreatePsbt />} />
+          <Route path="/sign-psbt" element={<SignPsbt />} />
           <Route path="/contact/edit/:id" element={<ContactForm />} />
           <Route path="/contact/create" element={<ContactForm />} />
           <Route path="/contacts" element={<AddressBook />} />
