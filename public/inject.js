@@ -1,22 +1,22 @@
 (function () {
 
-  windows.pipeline = windows.pipeline || {};
+  window.pipeline = window.pipeline || {};
 
   window.address = window?.pipeline?.address || null;
 
-  windows.pipeline.connect = function () {
+  window.pipeline.connect = function () {
     const event = new CustomEvent("connect");
     window.dispatchEvent(event);
   };
 
-  windows.pipeline.sendTransaction = function (recipient, amount, psbt) {
+  window.pipeline.sendTransaction = function (recipient, amount, psbt) {
     const event = new CustomEvent("sendTransaction", {
       detail: { recipient, amount, psbt },
     });
     window.dispatchEvent(event);
   };
 
-  windows.pipeline.signPsbt = function (psbtBase64) {
+  window.pipeline.signPsbt = function (psbtBase64) {
     const event = new CustomEvent("signPsbt", {
       detail: { psbtBase64 },
     });
@@ -28,8 +28,8 @@
     (result) => {
       if (result.data.action === "finishConnect") {
         if (result.data.address) {
-          windows.pipeline.address = result.data.address;
-          windows.pipeline.pubInternalKey = result.data.pubInternalKey;
+          window.pipeline.address = result.data.address;
+          window.pipeline.pubInternalKey = result.data.pubInternalKey;
 
           const connectEvent = new CustomEvent("connectToSite", {
             detail: { connectedWallet: result.data.address, pubInternalKey: result.data.pubInternalKey },
