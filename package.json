@@ -17,7 +17,7 @@
     "@types/node": "^20.11.6",
     "@types/webextension-polyfill": "^0.10.7",
     "@types/wif": "^2.0.5",
-    "axios": "^1.6.7",
+    "axios": "^1.7.4",
     "bcrypt": "^5.1.1",
     "bip32": "^4.0.0",
     "bip39": "^3.1.0",
@@ -58,6 +58,6 @@
     "eslint-plugin-react-refresh": "^0.4.5",
     "postcss": "^8.4.33",
     "typescript": "^5.2.2",
-    "vite": "^5.0.8"
+    "vite": "^5.2.14"
   }
 }
