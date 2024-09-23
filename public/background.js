@@ -34,8 +34,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       top: 100,
       left: 100,
     });
-
-
+    
     chrome.runtime.onMessage.addListener(function (popupMessage) {
       if (popupMessage.action === "connectToSite") {
 
