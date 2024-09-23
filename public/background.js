@@ -51,20 +51,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       return true;
     });
 
-
-    chrome.runtime.onMessage.addListener(function (popupMessage) {
-      if (popupMessage.action === "connectToSite") {
-        
-
-        chrome.storage.local.get("connectedWallet", (result) => {
-          sendResponse({ connectedWallet: result  });
-        });
-      }
-      if (popupMessage.action === "getAddress") {
-      }
-      return true;
-    });
-
     return true;
   } else if (request.action === "signPsbt") {
     chrome.windows.create({
