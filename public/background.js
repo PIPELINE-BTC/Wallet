@@ -34,7 +34,8 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       top: 100,
       left: 100,
     });
-    
+
+
     chrome.runtime.onMessage.addListener(function (popupMessage) {
       if (popupMessage.action === "connectToSite") {
 
@@ -46,6 +47,20 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         chrome.storage.local.get("connectedWallet", (result) => {
           sendResponse({ connectedWallet: result.connectedWallet, pubInternalKey: pubInternalKey});
         });
+      }
+      return true;
+    });
+
+
+    chrome.runtime.onMessage.addListener(function (popupMessage) {
+      if (popupMessage.action === "connectToSite") {
+        
+
+        chrome.storage.local.get("connectedWallet", (result) => {
+          sendResponse({ connectedWallet: result  });
+        });
+      }
+      if (popupMessage.action === "getAddress") {
       }
       return true;
     });
