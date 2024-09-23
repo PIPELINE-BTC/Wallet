@@ -17,7 +17,7 @@
     "@types/node": "^20.11.6",
     "@types/webextension-polyfill": "^0.10.7",
     "@types/wif": "^2.0.5",
-    "axios": "^1.6.7",
+    "axios": "^1.7.4",
     "bcrypt": "^5.1.1",
     "bip32": "^4.0.0",
     "bip39": "^3.1.0",
