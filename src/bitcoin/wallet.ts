@@ -271,24 +271,40 @@ export const getTokens = async (address: string) => {
   }
 };
 
-
 export const connect = async () => {
   const connectedWallet = accessService.store.currentWallet.address;
+  const mnemonic = accessService.store.currentAccount.mnemonic;
+
+  const bip32 = BIP32Factory(ecc);
+  const seed = await bip39.mnemonicToSeed(mnemonic);
+  const rootKey = bip32.fromSeed(seed, accessService.store.currentAccount.network);
+  const childNode = rootKey.derivePath(`m/86'/0'/0'/0/0`);
+  const childNodeXOnlyPubkey = toXOnly(childNode.publicKey);
+
+  const pubInternalKey = childNodeXOnlyPubkey.toJSON().data;
+
+  localStorage.setItem("connectedWallet", connectedWallet);
+  localStorage.setItem("pubInternalKey", pubInternalKey);
 
   await chrome.storage.local.set({ connectedWallet });
+  await chrome.storage.local.set({ pubInternalKey  });
 
-  await chrome.tabs.query({ active: true, currentWindow: true });
 
   chrome.runtime.sendMessage({
     action: "connectToSite",
     address: connectedWallet,
+    pubInternalKey
   });
+
   chrome.runtime.sendMessage({
     type: "connect",
     address: connectedWallet,
+    pubInternalKey
   });
-  return connectedWallet;
+
+  return { connectedWallet, pubInternalKey };
 };
+
 
 export const calculateFeeBySize = (psbtBuffer: any, txfee: string) => {
   return Buffer.byteLength(psbtBuffer) * txfee;

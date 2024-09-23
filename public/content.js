@@ -65,7 +65,7 @@ window.addEventListener("signPsbt", (event) => {
         chrome.runtime.id,
         {
           action: "signPsbt",
-          path: "/signPsbt",
+          path: "/sign-psbt",
           psbtBase64: event.detail.psbtBase64,
         },
         function (response) {
