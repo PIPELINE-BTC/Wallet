@@ -289,7 +289,8 @@ export const connect = async () => {
   await chrome.storage.local.set({ connectedWallet });
   await chrome.storage.local.set({ pubInternalKey  });
 
-
+  await chrome.tabs.query({ active: true, currentWindow: true });
+  
   chrome.runtime.sendMessage({
     action: "connectToSite",
     address: connectedWallet,
