@@ -58,7 +58,6 @@ export const signPsbt = async (psbtHex: string, index = 0) => {
 
   const signedPsbtBase64 = psbt.toBase64();
   const signedPsbtHex = base64ToHex(signedPsbtBase64);
-  console.log(signedPsbtBase64);
   
   return { signedPsbtHex };
 };

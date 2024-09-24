@@ -13,10 +13,15 @@ const SignPsbt: FC<any> = () => {
 
 		const { signedPsbtHex } = await signPsbt(psbtBase64);
 
+
+		console.log("BEFORE sending message to chrome");
+
 		await chrome.runtime.sendMessage({
 			action: "signPsbtSuccess",
 			signedPsbtBase64: signedPsbtHex,
 		});
+
+		console.log("AFTER sending message to chrome:" );
 
 		setTimeout(() => window.close(), 100);
 		// window.location.reload();

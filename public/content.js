@@ -71,7 +71,7 @@ window.addEventListener("signPsbt", (event) => {
         function (response) {
           const signedPsbtBase64 = response.signedPsbtBase64;
           window.postMessage(
-            { action: "signPsbt", signedPsbtBase64: response.signedPsbtBase64 },
+            { action: "signedPsbt", signedPsbtBase64: response.signedPsbtBase64 },
             "*"
           );
           return { signedPsbtBase64: signedPsbtBase64 };

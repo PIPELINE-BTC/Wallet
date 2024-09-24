@@ -1,5 +1,5 @@
 /* eslint-disable no-undef */
-let password = '';
+let password = "";
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "sendTransaction") {
@@ -34,17 +34,19 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       top: 100,
       left: 100,
     });
-    
+
     chrome.runtime.onMessage.addListener(function (popupMessage) {
       if (popupMessage.action === "connectToSite") {
-
         let pubInternalKey;
 
         chrome.storage.local.get("pubInternalKey", (result) => {
           pubInternalKey = result.pubInternalKey;
         });
         chrome.storage.local.get("connectedWallet", (result) => {
-          sendResponse({ connectedWallet: result.connectedWallet, pubInternalKey: pubInternalKey});
+          sendResponse({
+            connectedWallet: result.connectedWallet,
+            pubInternalKey: pubInternalKey,
+          });
         });
       }
       return true;
@@ -65,25 +67,25 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
     chrome.runtime.onMessage.addListener(function (payload) {
       if (payload.action === "signPsbtSuccess") {
-        sendResponse({ signedPsbtBase64: payload.signedPsbtBase64 });
+        console.log("i was there");
+        const signedPsbtBase64 = payload.signedPsbtBase64;
+        sendResponse({ signedPsbtBase64: signedPsbtBase64 });
       }
     });
 
     return true;
-  } else if (request.action === 'setPassword') {
+  } else if (request.action === "setPassword") {
     password = request.data;
-    sendResponse({})
+    sendResponse({});
     return true;
-  } else if (request.action === 'getPassword') {
+  } else if (request.action === "getPassword") {
     sendResponse({ password });
     return true;
   }
 });
 
-
 setInterval(async () => {
   try {
-    await chrome.runtime.sendMessage({ action: 'ping' });
-  } catch {
-  }
+    await chrome.runtime.sendMessage({ action: "ping" });
+  } catch {}
 }, 5 * 1000);

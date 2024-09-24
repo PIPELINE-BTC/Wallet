@@ -38,8 +38,8 @@
         }
       }
 
-      if (result.data.action === "signPsbt") {
-        const createdPsbtEvent = new CustomEvent("signPsbtFromExtension", {
+      if (result.data.action === "signedPsbt") {
+        const createdPsbtEvent = new CustomEvent("signPsbtSuccessFromExtension", {
           detail: { signedPsbtBase64: result.data.signedPsbtBase64 },
         });
         window.dispatchEvent(createdPsbtEvent);
