@@ -46,11 +46,20 @@ export const signPsbt = async (psbtHex: string, index = 0) => {
   );
 
   for (let i = 0; i < psbt.inputCount; i++) {
-    psbt.signInput(i, tweakedChildNode);
+    const inputData = psbt.data.inputs[i];
+    const inputKeyBuffer = inputData.tapInternalKey;
+
+    if (inputKeyBuffer && childNodeXOnlyPubkey.equals(inputKeyBuffer)) {
+        console.log(`Taproot key matches for input ${index}`);
+        const sighashType = inputData.sighashType || bitcoin.Transaction.SIGHASH_ALL;
+        psbt.signInput(i, tweakedChildNode, [sighashType]);
+    }
   }
+
   const signedPsbtBase64 = psbt.toBase64();
   const signedPsbtHex = base64ToHex(signedPsbtBase64);
-
+  console.log(signedPsbtBase64);
+  
   return { signedPsbtHex };
 };
 
