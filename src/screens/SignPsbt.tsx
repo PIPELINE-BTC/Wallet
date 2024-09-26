@@ -6,7 +6,7 @@ import { AccountContext } from "../AccountContext";
 
 const SignPsbt: FC<any> = () => {
 	const [psbtBase64, setPsbtBase64] = useState<string>();
-	const { currentAccount } = useContext(AccountContext);
+	const { currentWallet } = useContext(AccountContext);
 
 
 	const signPSBTData = async () => {
@@ -14,8 +14,7 @@ const SignPsbt: FC<any> = () => {
 			alert('No PSBT');
 			return;
 		}
-
-		const { signedPsbtHex } = await signPsbt(psbtBase64, currentAccount.index);
+		const { signedPsbtHex } = await signPsbt(psbtBase64, currentWallet);
 
 		await chrome.runtime.sendMessage({
 			action: "signPsbtSuccess",

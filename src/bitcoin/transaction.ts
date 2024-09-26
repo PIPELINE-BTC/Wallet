@@ -21,6 +21,7 @@ import { toBytes, toInt26, textToHex, base64ToHex, hexToBase64 } from "./utils";
 
 export const signPsbt = async (psbtHex: string, index = 0) => {
 
+  console.log(index)
   const psbtUncoded = hexToBase64(psbtHex);
 
   const selectedNetwork = accessService.store.network;
@@ -39,7 +40,7 @@ export const signPsbt = async (psbtHex: string, index = 0) => {
 
   const seed = await bip39.mnemonicToSeed(mnemonic);
   const rootKey = bip32.fromSeed(seed, network);
-  const derivationPath = `m/86'/0'/0'/0/${index}`;
+  const derivationPath = `m/86'/0'/0'/0/${index - 1}`;
   childNode = rootKey.derivePath(derivationPath);
   childNodeXOnlyPubkey = toXOnly(childNode.publicKey);
 
@@ -47,11 +48,12 @@ export const signPsbt = async (psbtHex: string, index = 0) => {
     bitcoin.crypto.taggedHash("TapTweak", childNodeXOnlyPubkey)
   );
 
+
   for (let i = 0; i < psbt.inputCount; i++) {
     const inputData = psbt.data.inputs[i];
     const inputKeyBuffer = inputData.tapInternalKey;
-
     if (inputKeyBuffer && childNodeXOnlyPubkey.equals(inputKeyBuffer)) {
+      console.log(inputKeyBuffer, childNodeXOnlyPubkey);
       const sighashType = inputData.sighashType || bitcoin.Transaction.SIGHASH_ALL;
       psbt.signInput(i, tweakedChildNode, [sighashType]);
     }
@@ -59,6 +61,7 @@ export const signPsbt = async (psbtHex: string, index = 0) => {
 
   const signedPsbtBase64 = psbt.toBase64();
   const signedPsbtHex = base64ToHex(signedPsbtBase64);
+  console.log(signedPsbtHex)
   return { signedPsbtHex };
 };
 
