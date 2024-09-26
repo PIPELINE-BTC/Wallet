@@ -20,6 +20,7 @@ import { calculateFeeBySize, estimateFee } from "./wallet";
 import { toBytes, toInt26, textToHex, base64ToHex, hexToBase64 } from "./utils";
 
 export const signPsbt = async (psbtHex: string, index = 0) => {
+
   const psbtUncoded = hexToBase64(psbtHex);
 
   const selectedNetwork = accessService.store.network;
@@ -38,7 +39,8 @@ export const signPsbt = async (psbtHex: string, index = 0) => {
 
   const seed = await bip39.mnemonicToSeed(mnemonic);
   const rootKey = bip32.fromSeed(seed, network);
-  childNode = rootKey.derivePath(`m/86'/0'/0'/0/${index}`);
+  const derivationPath = `m/86'/0'/0'/0/${index}`;
+  childNode = rootKey.derivePath(derivationPath);
   childNodeXOnlyPubkey = toXOnly(childNode.publicKey);
 
   const tweakedChildNode = childNode.tweak(
@@ -50,15 +52,13 @@ export const signPsbt = async (psbtHex: string, index = 0) => {
     const inputKeyBuffer = inputData.tapInternalKey;
 
     if (inputKeyBuffer && childNodeXOnlyPubkey.equals(inputKeyBuffer)) {
-        console.log(`Taproot key matches for input ${index}`);
-        const sighashType = inputData.sighashType || bitcoin.Transaction.SIGHASH_ALL;
-        psbt.signInput(i, tweakedChildNode, [sighashType]);
+      const sighashType = inputData.sighashType || bitcoin.Transaction.SIGHASH_ALL;
+      psbt.signInput(i, tweakedChildNode, [sighashType]);
     }
   }
 
   const signedPsbtBase64 = psbt.toBase64();
   const signedPsbtHex = base64ToHex(signedPsbtBase64);
-  
   return { signedPsbtHex };
 };
 

@@ -273,12 +273,13 @@ export const getTokens = async (address: string) => {
 
 export const connect = async () => {
   const connectedWallet = accessService.store.currentWallet.address;
+  const accountIndex = accessService.store.currentAccount.index;
   const mnemonic = accessService.store.currentAccount.mnemonic;
 
   const bip32 = BIP32Factory(ecc);
   const seed = await bip39.mnemonicToSeed(mnemonic);
   const rootKey = bip32.fromSeed(seed, accessService.store.currentAccount.network);
-  const childNode = rootKey.derivePath(`m/86'/0'/0'/0/0`);
+  const childNode = rootKey.derivePath(`m/86'/0'/0'/0/${accountIndex}`);
   const childNodeXOnlyPubkey = toXOnly(childNode.publicKey);
 
   const pubInternalKey = childNodeXOnlyPubkey.toJSON().data;

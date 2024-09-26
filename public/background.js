@@ -67,7 +67,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
     chrome.runtime.onMessage.addListener(function (payload) {
       if (payload.action === "signPsbtSuccess") {
-        console.log("i was there");
         const signedPsbtBase64 = payload.signedPsbtBase64;
         sendResponse({ signedPsbtBase64: signedPsbtBase64 });
       }

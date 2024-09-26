@@ -20,6 +20,7 @@
     const event = new CustomEvent("signPsbt", {
       detail: { psbtBase64 },
     });
+
     window.dispatchEvent(event);
   };
 
