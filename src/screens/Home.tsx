@@ -33,7 +33,7 @@ const Home = () => {
   const { currentWallet, tokens, nfts, setAppState, network, currentAccount, currentRequest } =
     useContext(AccountContext);
   const navigate = useNavigate();
-  const { handleSelectWallet } = useWallet();
+  const { handleSelectedAccount } = useWallet();
   const dropdownRef = useRef<HTMLDivElement>(null);
   useClickOutside(dropdownRef, () => setIsOpen(false));
 
@@ -143,7 +143,7 @@ const Home = () => {
                     <div
                       className="flex justify-between mr-3 cursor-pointer pb-3"
                       onClick={() => {
-                        handleSelectWallet(wallet.id);
+                        handleSelectedAccount(wallet.id);
                         setIsOpen(false);
                       }}
                     >
