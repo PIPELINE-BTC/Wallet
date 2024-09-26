@@ -11,7 +11,7 @@ import Edit from "../assets/img/edit.svg?react";
 
 
 const Wallet = ({ wallet }: any) => {
-  const { handleSelectWallet } = useWallet();
+  const { handleSelectedAccount: handleSelectedAccount } = useWallet();
   const { currentWallet, /* accessService, */network } = useContext(AccountContext);
 
   const navigate = useNavigate();
@@ -21,7 +21,7 @@ const Wallet = ({ wallet }: any) => {
       key={wallet.id}
       className="bg-dark-gray py-3 px-5 flex items-center rounded-md cursor-pointer relative"
       onClick={() => {
-        handleSelectWallet(wallet.id);
+        handleSelectedAccount(wallet.id);
         navigate('/home');
       }}
     >

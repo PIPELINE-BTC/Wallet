@@ -13,13 +13,13 @@ const useWallet = () => {
     navigate('/home');
   };
 
-  const handleSelectWallet = (id: string) => {
+  const handleSelectedAccount = (id: string) => {
     return accessService.selectWallet(id);
   };
 
   return {
     handleImportWallet,
-    handleSelectWallet,
+    handleSelectedAccount,
   }
 };
 
