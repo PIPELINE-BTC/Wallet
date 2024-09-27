@@ -70,6 +70,10 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         const signedPsbtBase64 = payload.signedPsbtBase64;
         sendResponse({ signedPsbtBase64: signedPsbtBase64 });
       }
+
+      if (payload.action === "failedSignedPsbt") {
+        sendResponse({ error: payload.error });
+      }
     });
 
     return true;

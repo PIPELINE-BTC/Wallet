@@ -46,6 +46,13 @@
         window.dispatchEvent(createdPsbtEvent);
       }
 
+      if (result.data.action === "failedSignedPsbt") {
+        const createdPsbtEvent = new CustomEvent("signPsbtFailFromExtension", {
+          detail: { error: result.data.error },
+        });
+        window.dispatchEvent(createdPsbtEvent);
+      }
+
       if (result.data.action === "createdTransaction") {
         const createdTransactionEvent = new CustomEvent("createTransactionFromPsbt", {
           detail: { transaction: result.data.transaction },

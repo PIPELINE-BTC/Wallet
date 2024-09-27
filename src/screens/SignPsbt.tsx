@@ -1,27 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { FC, useEffect, useState, useContext } from "react";
+import { FC, useEffect, useState } from "react";
 import { signPsbt } from "../bitcoin/transaction.ts";
-import { AccountContext } from "../AccountContext";
 
 
 const SignPsbt: FC<any> = () => {
 	const [psbtBase64, setPsbtBase64] = useState<string>();
-	const { currentWallet } = useContext(AccountContext);
 
-
-	const signPSBTData = async () => {
+	const signPSBTData = async (index = -1) => {
 		if (!psbtBase64) {
 			alert('No PSBT');
 			return;
 		}
-		const { signedPsbtHex } = await signPsbt(psbtBase64, currentWallet);
+		await signPsbt(psbtBase64, index);
 
-		await chrome.runtime.sendMessage({
-			action: "signPsbtSuccess",
-			signedPsbtBase64: signedPsbtHex,
-		});
-
-		setTimeout(() => window.close(), 100);
+		setTimeout(() => window.close(), 500);
 		// window.location.reload();
 	}
 
@@ -72,7 +64,7 @@ const SignPsbt: FC<any> = () => {
 					Reject
 				</button>
 
-				<button className="btn btn-secondary" onClick={() => signPSBTData()}>
+				<button className="btn btn-primary" onClick={() => signPSBTData()}>
 					Sign & Send
 				</button>
 			</div>

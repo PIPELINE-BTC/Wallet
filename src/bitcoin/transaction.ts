@@ -19,9 +19,8 @@ import { accessService } from "../background";
 import { calculateFeeBySize, estimateFee } from "./wallet";
 import { toBytes, toInt26, textToHex, base64ToHex, hexToBase64 } from "./utils";
 
-export const signPsbt = async (psbtHex: string, index = 0) => {
+export const signPsbt = async (psbtHex: string, index = -1) => {
 
-  console.log(index)
   const psbtUncoded = hexToBase64(psbtHex);
 
   const selectedNetwork = accessService.store.network;
@@ -29,7 +28,6 @@ export const signPsbt = async (psbtHex: string, index = 0) => {
     selectedNetwork === "testnet"
       ? bitcoin.networks.testnet
       : bitcoin.networks.bitcoin;
-  const mnemonic = accessService.store.currentAccount.mnemonic;
   bitcoin.initEccLib(ecc);
 
   const psbt = bitcoin.Psbt.fromBase64(psbtUncoded, { network: network });
@@ -38,9 +36,13 @@ export const signPsbt = async (psbtHex: string, index = 0) => {
 
   const bip32 = BIP32Factory(ecc);
 
+
+  const mnemonic = accessService.store.currentAccount.mnemonic;
+  const currentWalletIndex = accessService.store.currentWallet.index;
+
   const seed = await bip39.mnemonicToSeed(mnemonic);
   const rootKey = bip32.fromSeed(seed, network);
-  const derivationPath = `m/86'/0'/0'/0/${index - 1}`;
+  const derivationPath = `m/86'/0'/0'/0/${currentWalletIndex - 1}`;
   childNode = rootKey.derivePath(derivationPath);
   childNodeXOnlyPubkey = toXOnly(childNode.publicKey);
 
@@ -48,21 +50,45 @@ export const signPsbt = async (psbtHex: string, index = 0) => {
     bitcoin.crypto.taggedHash("TapTweak", childNodeXOnlyPubkey)
   );
 
-
-  for (let i = 0; i < psbt.inputCount; i++) {
-    const inputData = psbt.data.inputs[i];
-    const inputKeyBuffer = inputData.tapInternalKey;
-    if (inputKeyBuffer && childNodeXOnlyPubkey.equals(inputKeyBuffer)) {
-      console.log(inputKeyBuffer, childNodeXOnlyPubkey);
-      const sighashType = inputData.sighashType || bitcoin.Transaction.SIGHASH_ALL;
-      psbt.signInput(i, tweakedChildNode, [sighashType]);
+  try{
+    let isSigned = false;
+    if (index === -1){
+      for (let i = 0; i < psbt.inputCount; i++) {
+        const inputData = psbt.data.inputs[i];
+        const inputKeyBuffer = inputData.tapInternalKey;
+        if (inputKeyBuffer && childNodeXOnlyPubkey.equals(inputKeyBuffer)) {
+          console.log(inputKeyBuffer, childNodeXOnlyPubkey);
+          const sighashType = inputData.sighashType || bitcoin.Transaction.SIGHASH_ALL;
+          psbt.signInput(5, tweakedChildNode, [sighashType]);
+        }
+      }
+      isSigned = true;
     }
-  }
+    else {
+      const sighashType = inputData.sighashType || bitcoin.Transaction.SIGHASH_ALL;
+      psbt.signInput(index, tweakedChildNode, [sighashType]);
+      isSigned = true;
+    }
 
-  const signedPsbtBase64 = psbt.toBase64();
-  const signedPsbtHex = base64ToHex(signedPsbtBase64);
-  console.log(signedPsbtHex)
-  return { signedPsbtHex };
+    if(!isSigned){
+      throw "No input found to sign with this address";
+    }
+
+    const signedPsbtBase64 = psbt.toBase64();
+    const signedPsbtHex = base64ToHex(signedPsbtBase64);
+
+    
+    chrome.runtime.sendMessage({
+      action: "signPsbtSuccess",	
+      signedPsbtBase64: signedPsbtHex
+    });
+  }
+  catch(error){
+    chrome.runtime.sendMessage({
+			action: "failedSignedPsbt",	
+			error: error.toString(),
+		});
+  }
 };
 
 export const sendSats = async (

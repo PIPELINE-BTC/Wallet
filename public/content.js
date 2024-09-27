@@ -69,12 +69,22 @@ window.addEventListener("signPsbt", (event) => {
           psbtBase64: event.detail.psbtBase64,
         },
         function (response) {
-          const signedPsbtBase64 = response.signedPsbtBase64;
-          window.postMessage(
-            { action: "signedPsbt", signedPsbtBase64: response.signedPsbtBase64 },
-            "*"
-          );
-          return { signedPsbtBase64: signedPsbtBase64 };
+
+          if(response.error){
+            window.postMessage(
+              { action: "failedSignedPsbt", error: response.error},
+              "*"
+            );
+            return { error: response.error };
+          }
+          else{
+            const signedPsbtBase64 = response.signedPsbtBase64;
+            window.postMessage(
+              { action: "signedPsbt", signedPsbtBase64: response.signedPsbtBase64 },
+              "*"
+            );
+            return { signedPsbtBase64: signedPsbtBase64 };
+          }
         }
       );
     } catch (e) {
