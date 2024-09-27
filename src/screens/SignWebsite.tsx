@@ -28,11 +28,11 @@ const SignWebsite = () => {
 
   return (
     <>
+      <div className="px-6">
+        <div className="bg-modal-dark px-6 pb-6 pt-3 mb-1.5 rounded-md">
       <h1 className="mb-10 mt-4 text-white font-medim text-lg text-center">
         Sign Transaction
       </h1>
-      <div className="px-6">
-        <div className="bg-modal-dark px-6 pb-6 pt-3 mb-1.5 rounded-md">
           <p className="text-white font-medium text-base mb-3">Link to site</p>
           <div className="flex items-center">
             <img
