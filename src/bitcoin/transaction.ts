@@ -57,7 +57,6 @@ export const signPsbt = async (psbtHex: string, index = -1) => {
         const inputData = psbt.data.inputs[i];
         const inputKeyBuffer = inputData.tapInternalKey;
         if (inputKeyBuffer && childNodeXOnlyPubkey.equals(inputKeyBuffer)) {
-          console.log(inputKeyBuffer, childNodeXOnlyPubkey);
           const sighashType = inputData.sighashType || bitcoin.Transaction.SIGHASH_ALL;
           psbt.signInput(i, tweakedChildNode, [sighashType]);
         }
