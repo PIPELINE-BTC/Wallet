@@ -55,9 +55,6 @@ interface FeeRates {
 		alert('Fee rates not loaded');
 		return;
 	  }
-	  const feeRate = selectedFee === "normal" ? feeRates.halfHourFee : feeRates.fastestFee;
-	  console.log(feeRate);
-
 	  await signPsbt(psbtBase64, -1); 
   
 	  setTimeout(() => window.close(), 500);
