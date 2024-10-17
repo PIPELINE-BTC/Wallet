@@ -14,7 +14,7 @@ const useWallet = () => {
   };
 
   const handleSelectedAccount = (id: string) => {
-    const selectedAccount = currentAccount.wallets.filter((acc: any) => acc.id === id)[0].address;
+    const selectedAccount = currentAccount.wallets.filter((acc: any) => acc.id === id)[0].address[accessService.store.network];
 
     chrome.runtime.sendMessage({
       action: "accountChanged",
