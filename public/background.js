@@ -2,6 +2,20 @@
 let password = "";
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+
+    if (request.action === "accountChanged") {
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach((tab) => {
+          if (tab.id) {
+            chrome.tabs.sendMessage(tab.id, {
+              action: "accountChanged",
+              account: request.account,
+            });
+          }
+        });
+      });
+    }
+
   if (request.action === "sendTransaction") {
     chrome.windows.create({
       url: chrome.runtime.getURL(

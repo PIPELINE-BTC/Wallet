@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { AccountContext } from '../AccountContext';
 
 const useWallet = () => {
-  const { accessService } = useContext(AccountContext);
+  const { accessService, currentAccount } = useContext(AccountContext);
   const navigate = useNavigate();
 
   const handleImportWallet = async(wallet: any) => {
@@ -14,6 +14,12 @@ const useWallet = () => {
   };
 
   const handleSelectedAccount = (id: string) => {
+    const selectedAccount = currentAccount.wallets.filter((acc: any) => acc.id === id)[0].address;
+
+    chrome.runtime.sendMessage({
+      action: "accountChanged",
+      account: selectedAccount
+    });
     return accessService.selectWallet(id);
   };
 

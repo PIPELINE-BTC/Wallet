@@ -25,8 +25,6 @@ window.addEventListener("sendTransaction", (event) => {
   }
 });
 
-
-
 window.addEventListener("connect", (event) => {
   if (event.type === "connect") {
     try {
@@ -114,6 +112,13 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     sendResponse({ result: "success" });
   }
   if (request.type === "getAddress") { }
+
+  if (request.action === "accountChanged") {
+    window.postMessage({
+      action: "accountChanged",
+      account: request.account,
+    }, "*");
+  }
 
   return true;
 });
