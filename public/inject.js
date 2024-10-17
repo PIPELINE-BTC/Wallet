@@ -6,18 +6,23 @@
 
   window.pipeline._listeners = {};
 
-  window.pipeline.on = function (event, handler) {
-    if (!window.pipeline._listeners[event]) {
-      window.pipeline._listeners[event] = [];
+  window.pipeline.on = function (eventName, handler) {
+    if (!window.pipeline._listeners[eventName]) {
+      window.pipeline._listeners[eventName] = [];
+      const event = new CustomEvent("addListener", {detail: { eventName }});
+      window.dispatchEvent(event);
     }
-    window.pipeline._listeners[event].push(handler);
+    window.pipeline._listeners[eventName].push(handler);
   };
 
-  window.pipeline.removeListener = function (event, handler) {
-    if (!window.pipeline._listeners[event]) return;
-    window.pipeline._listeners[event] = window.pipeline._listeners[event].filter(
-      (h) => h !== handler
-    );
+  window.pipeline.removeListener = function (eventName, handler) {
+    if (!window.pipeline._listeners[eventName]) return;
+    window.pipeline._listeners[eventName] = window.pipeline._listeners[eventName].filter((h) => h !== handler);
+
+    if (window.pipeline._listeners[eventName].length === 0) {
+      const event = new CustomEvent("removeListener", {detail: { eventName }});
+      window.dispatchEvent(event);
+    }
   };
 
   window.pipeline.connect = function () {

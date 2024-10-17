@@ -161,14 +161,24 @@ class AppStore {
   };
 
   addWebsite = (url: string) => {
+    const baseUrl = new URL(url).origin; 
     const websites = this.cache.getState().websites;
-    this.cache.updateState({ websites: [ ...websites, url ] });
-    this.persistStore();
+
+    if (!websites.includes(baseUrl)) {
+      this.cache.updateState({ websites: [ ...websites, baseUrl ] });
+      this.persistStore();
+    }
   };
 
   removeWebsite = (url: string) => {
+    const baseUrl = new URL(url).origin;
     const websites = this.cache.getState().websites;
-    this.cache.updateState({ websites: websites.filter((w: any) => w !== url) });
+
+    this.cache.updateState({
+      websites: websites.filter((w: string) => w !== baseUrl)
+    });
+    
+  console.log(websites.filter((w: string) => w !== baseUrl))
     this.persistStore();
   };
 
