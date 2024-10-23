@@ -177,8 +177,6 @@ class AppStore {
     this.cache.updateState({
       websites: websites.filter((w: string) => w !== baseUrl)
     });
-    
-  console.log(websites.filter((w: string) => w !== baseUrl))
     this.persistStore();
   };
 
