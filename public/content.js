@@ -1,5 +1,21 @@
 /* eslint-disable no-undef */
 
+window.addEventListener("addListener", (event) => {
+  if (event.type === "addListener") {
+    try {
+      chrome.runtime.sendMessage(
+        chrome.runtime.id,
+        {
+          action: "addListener",
+          eventName: event.detail.eventName
+        }
+      );
+    } catch (e) {
+      console.log(e);
+    }
+  }
+});
+
 window.addEventListener("sendTransaction", (event) => {
   try {
     chrome.runtime.sendMessage(
@@ -24,8 +40,6 @@ window.addEventListener("sendTransaction", (event) => {
     console.log(e);
   }
 });
-
-
 
 window.addEventListener("connect", (event) => {
   if (event.type === "connect") {
@@ -115,6 +129,13 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   }
   if (request.type === "getAddress") { }
 
+  if (request.action === "accountChanged") {
+    window.postMessage({
+      action: "accountChanged",
+      account: request.account,
+    }, "*");
+    sendResponse({ result: "success" });
+  }
   return true;
 });
 

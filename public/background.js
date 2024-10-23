@@ -1,7 +1,35 @@
 /* eslint-disable no-undef */
 let password = "";
 
+const activeListeners = new Set();
+
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+
+  if (request.action === "addListener") {
+    activeListeners.add(request.eventName);
+  } else if (request.action === "removeListener") {
+    activeListeners.delete(request.eventName);
+  }
+
+  if (request.action === "accountChanged" && activeListeners.has("accountChanged")) {
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach((tab) => {
+        if (tab.id) {
+          chrome.tabs.sendMessage(tab.id, {
+            action: "accountChanged",
+            account: request.account,
+          }, (response) => {
+            // Vérifier si une erreur est survenue lors de l'envoi du message à chaque onglet
+            if (chrome.runtime.lastError) {
+              console.warn(`Erreur d'envoi du message à l'onglet ${tab.id}:`, chrome.runtime.lastError.message);
+            }
+          });
+        }
+      });
+    });
+
+  }
+
   if (request.action === "sendTransaction") {
     chrome.windows.create({
       url: chrome.runtime.getURL(
@@ -90,5 +118,5 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 setInterval(async () => {
   try {
     await chrome.runtime.sendMessage({ action: "ping" });
-  } catch {}
+  } catch { }
 }, 5 * 1000);

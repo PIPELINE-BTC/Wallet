@@ -37,12 +37,6 @@ const ConnectedSites = () => {
               key={url}
             >
               <div className="flex items-center">
-                <img
-                  src={`${url}favicon.ico`}
-                  alt="PIPELINE"
-                  width={60}
-                  height={60}
-                />
                 <p className="text-white text-base font-medium ml-3">
                   {url}
                 </p>
