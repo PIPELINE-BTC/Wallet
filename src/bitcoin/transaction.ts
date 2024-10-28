@@ -136,7 +136,7 @@ export const sendSats = async (
     utxoUrl = `https://mempool.space/testnet/api/address/${address}/utxo`;
     assetsUrl = `https://data.ppline.app:5099/getAddrDD?addr=${address}`;
   } else {
-    utxoUrl = `https://data3.ppline.app:5005/api/address/${address}/utxo`;
+    utxoUrl = `https://data2.ppline.app:5020/api/address/${address}/utxo`;
     assetsUrl = `https://data2.ppline.app:5098/getAddrD?addr=${address}`;
   }
 
@@ -227,7 +227,7 @@ export const sendSats = async (
     if (selectedNetwork === "testnet") {
       hexUrl = `https://mempool.space/testnet/api/tx/${input.hash}/hex`;
     } else {
-      hexUrl = `https://data3.ppline.app:5005/api/tx/${input.hash}/hex`;
+      hexUrl = `https://data2.ppline.app:5020/api/tx/${input.hash}/hex`;
     }
 
     const rawTx = await axios.get(
@@ -312,7 +312,7 @@ export const sendSats = async (
         if (selectedNetwork === "testnet") {
           hexUrl = `https://mempool.space/testnet/api/tx/${input.hash}/hex`;
         } else {
-          hexUrl = `https://data3.ppline.app:5005/api/tx/${inputD.hash}/hex`;
+          hexUrl = `https://data2.ppline.app:5020/api/tx/${inputD.hash}/hex`;
         }
 
         try {
@@ -359,7 +359,7 @@ export const sendSats = async (
     pushURL = `https://data.ppline.app:5099/push`;
 
   } else {
-    pushURL = `https://data3.ppline.app:5005/push`;
+    pushURL = `https://data2.ppline.app:5020/push`;
   }
   const response = await axios.post(pushURL, tx, {
     headers: { "Content-Type": "text/plain" },
@@ -426,7 +426,7 @@ function selectTokenRelatedUtxos(tokens: any[], ticker: string, id: string, requ
 export const sendTransactionByPSBT = async (psbtData: string) => {
   const selectedNetwork = accessService.store.network;
 
-  const pushURL = `https://data3.ppline.app:5005/push`;
+  const pushURL = `https://data2.ppline.app:5020/push`;
 
   const response = await axios.post(pushURL, psbtData, {
     headers: { "Content-Type": "text/plain" },
@@ -560,7 +560,7 @@ export const sendTransferTransaction = async (
     utxoUrl = `https://mempool.space/testnet/api/address/${address}/utxo`;
     assetsUrl = `https://data.ppline.app:5099/getAddrDD?addr=${address}`;
   } else {
-    utxoUrl = `https://data3.ppline.app:5005/api/address/${address}/utxo`;
+    utxoUrl = `https://data2.ppline.app:5020/api/address/${address}/utxo`;
     assetsUrl = `https://data2.ppline.app:5098/getAddrD?addr=${address}`;
   }
 
@@ -686,7 +686,7 @@ export const sendTransferTransaction = async (
     if (selectedNetwork === "testnet") {
       hexUrl = `https://mempool.space/testnet/api/tx/${input.hash}/hex`;
     } else {
-      hexUrl = `https://data3.ppline.app:5005/api/tx/${input.hash}/hex`;
+      hexUrl = `https://data2.ppline.app:5020/api/tx/${input.hash}/hex`;
     }
 
     const rawTx = await axios.get(
@@ -828,7 +828,7 @@ export const sendTransferTransaction = async (
       if (selectedNetwork === "testnet") {
         hexUrl = `https://mempool.space/testnet/api/tx/${inputD.hash}/hex`;
       } else {
-        hexUrl = `https://data3.ppline.app:5005/api/tx/${inputD.hash}/hex`;
+        hexUrl = `https://data2.ppline.app:5020/api/tx/${inputD.hash}/hex`;
       }
 
       try {
@@ -883,7 +883,7 @@ export const sendTransferTransaction = async (
   if (selectedNetwork === "testnet") {
     pushURL = `https://mempool.space/testnet/api/tx`;
   } else {
-    pushURL = `https://data3.ppline.app:5005/push`;
+    pushURL = `https://data2.ppline.app:5020/push`;
   }
   const response = await axios.post(pushURL, tx, {
     headers: { "Content-Type": "text/plain" },

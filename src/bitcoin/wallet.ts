@@ -151,7 +151,7 @@ export async function getBalance(address: string) {
     utxoUrl = `https://mempool.space/testnet/api/address/${address}/utxo`;
     assetsUrl = `https://data.ppline.app:5099/getAddrDD?addr=${address}`;
   } else {
-    utxoUrl = `https://data3.ppline.app:5005/api/address/${address}/utxo`;
+    utxoUrl = `https://data2.ppline.app:5020/api/address/${address}/utxo`;
     assetsUrl = `https://data2.ppline.app:5098/getAddrD?addr=${address}`;
   }
 

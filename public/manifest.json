@@ -44,7 +44,6 @@
     "https://data2.ppline.app:5098/*",
     "https://blockstream.info/testnet/api/*",
     "https://mempool.space/api/*",
-    "https://data3.ppline.app:5005/*",
     "https://data2.ppline.app:5020/*"
   ],
   "permissions": [
