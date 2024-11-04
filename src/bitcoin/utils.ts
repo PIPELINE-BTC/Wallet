@@ -2,6 +2,18 @@ import { Buffer } from "buffer";
 import * as bitcoin from 'bitcoinjs-lib';
 
 
+export enum InputType {
+  Taproot = 'taproot',
+  Segwit = 'segwit',
+  Legacy = 'legacy',
+}
+
+export enum OutputType {
+  Taproot = 'taproot',
+  Segwit = 'segwit',
+  Legacy = 'legacy',
+}
+
 export function textToHex(text: string) {
   const encoder = new TextEncoder().encode(text);
   return [...new Uint8Array(encoder)]
@@ -81,4 +93,89 @@ export function hexToBase64(hex: string): string {
   const buffer = Buffer.from(hex, 'hex');
   
   return buffer.toString('base64');
+}
+export function estimateTransactionVBytes(inputCount: number, outputCount: number, scriptSize: number, type: string = "p2tr"): number {
+  const baseSize = type === "p2tr" ? 10.5 : 10;
+
+  const inputBaseSize = estimateInputSize(type, inputCount);
+  const outputSize = estimateOutputSize(type, outputCount);
+  const finalScriptSize = estimateScriptSize(scriptSize);
+
+  const totalVBytes = baseSize + inputBaseSize + outputSize + finalScriptSize;
+
+  return Math.ceil(totalVBytes);
+}
+
+function estimateInputSize(addressType: string, count: number): number {
+  let sizeByInput: number = 0;
+
+  switch (addressType) {
+      case "p2wpkh":
+          sizeByInput = 68;
+          break;
+
+      case "p2tr":
+          sizeByInput = 57.5;
+          break;
+  }
+
+  return sizeByInput * count;
+}
+
+function estimateOutputSize(addressType: string, count: number): number {
+  let sizeByOutput: number = 0;
+
+  switch (addressType) {
+      case "p2wpkh":
+          sizeByOutput = 31;
+          break;
+      case "p2tr":
+          sizeByOutput = 43;
+          break;
+  }
+
+  return count * sizeByOutput;
+}
+
+function estimateScriptSize(compiledScriptSize: number): number {
+  const valueSize = 8;
+  const varintSize = compiledScriptSize < 0xFD ? 1 : compiledScriptSize <= 0xFFFF ? 3 : 5;
+  const totalSize = valueSize + varintSize + compiledScriptSize;
+
+  return totalSize;
+}
+
+export function getAverageVbytes(inputType: InputType = InputType.Taproot, outputType: OutputType = OutputType.Taproot): { inputVbytes: number; outputVbytes: number } {
+  let inputVbytes: number;
+  let outputVbytes: number;
+
+  switch (inputType) {
+      case InputType.Taproot:
+          inputVbytes = 57.5;
+          break;
+      case InputType.Segwit:
+          inputVbytes = 68;
+          break;
+      case InputType.Legacy:
+          inputVbytes = 148;
+          break;
+      default:
+          inputVbytes = 57.5;
+  }
+
+  switch (outputType) {
+      case OutputType.Taproot:
+          outputVbytes = 43;
+          break;
+      case OutputType.Segwit:
+          outputVbytes = 31;
+          break;
+      case OutputType.Legacy:
+          outputVbytes = 34;
+          break;
+      default:
+          outputVbytes = 43;
+  }
+
+  return { inputVbytes, outputVbytes };
 }

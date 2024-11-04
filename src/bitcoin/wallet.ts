@@ -151,7 +151,7 @@ export async function getBalance(address: string) {
     utxoUrl = `https://mempool.space/testnet/api/address/${address}/utxo`;
     assetsUrl = `https://data.ppline.app:5099/getAddrDD?addr=${address}`;
   } else {
-    utxoUrl = `https://data3.ppline.app:5005/api/address/${address}/utxo`;
+    utxoUrl = `https://data2.ppline.app:5020/api/address/${address}/utxo`;
     assetsUrl = `https://data2.ppline.app:5098/getAddrD?addr=${address}`;
   }
 
@@ -246,10 +246,10 @@ export const getTokens = async (address: string) => {
       item.collectionAddr !== null || item.isPB
     );
 
-    const pipeArtDataPromises = filteredData.map((item) => 
+    const pipeArtDataPromises = filteredData.map((item) =>
       getPipeArtData(item, selectedNetwork)
     )
-      
+
     const pipeArtDataArray = await Promise.all(pipeArtDataPromises);
 
     const tokensPromises = result.map(async (element) => {
@@ -273,18 +273,27 @@ export const getTokens = async (address: string) => {
 
 export const connect = async () => {
   const connectedWallet = accessService.store.currentWallet.address[accessService.store.network];
-  const mnemonic = accessService.store.currentAccount.mnemonic;
 
-  const currentNetwork =  accessService.store.network === "livenet" ? bitcoin.networks.bitcoin : bitcoin.networks.testnet;
-  
-  const bip32 = BIP32Factory(ecc);
-  const seed = await bip39.mnemonicToSeed(mnemonic);
-  const rootKey = bip32.fromSeed(seed, currentNetwork);
-  
-  const accountIndex = accessService.store.currentWallet.index -1;
+  const isFromWif = accessService.store.currentAccount.wif ? true : false;
 
-  const childNode = rootKey.derivePath(`m/86'/0'/0'/0/${accountIndex}`);
-  const childNodeXOnlyPubkey = toXOnly(childNode.publicKey);
+  const mnemonic = isFromWif ? accessService.store.currentAccount.wif.livenet : accessService.store.currentAccount.mnemonic;
+  const currentNetwork = accessService.store.network === "livenet" ? bitcoin.networks.bitcoin : bitcoin.networks.testnet;
+
+  let childNodeXOnlyPubkey;
+
+  if (!isFromWif) {
+    const bip32 = BIP32Factory(ecc);
+    const seed = await bip39.mnemonicToSeed(mnemonic);
+    const rootKey = bip32.fromSeed(seed, network);
+    const childNode = rootKey.derivePath(`m/86'/0'/0'/0/${currentWalletIndex - 1}`);
+    childNodeXOnlyPubkey = toXOnly(childNode.publicKey);
+  }
+  else {
+    const ECPairInstance: ECPairAPI = ECPairFactory(ecc);
+    const keyPair = ECPairInstance.fromWIF(mnemonic);
+    const childNode = keyPair;
+    childNodeXOnlyPubkey = toXOnly(childNode.publicKey);
+  }
 
   const pubInternalKey = childNodeXOnlyPubkey.toJSON().data;
 
@@ -292,10 +301,10 @@ export const connect = async () => {
   localStorage.setItem("pubInternalKey", pubInternalKey);
 
   await chrome.storage.local.set({ connectedWallet });
-  await chrome.storage.local.set({ pubInternalKey  });
+  await chrome.storage.local.set({ pubInternalKey });
 
   await chrome.tabs.query({ active: true, currentWindow: true });
-  
+
   chrome.runtime.sendMessage({
     action: "connectToSite",
     address: connectedWallet,
