@@ -278,13 +278,14 @@ export const connect = async () => {
 
   const mnemonic = isFromWif ? accessService.store.currentAccount.wif.livenet : accessService.store.currentAccount.mnemonic;
   const currentNetwork = accessService.store.network === "livenet" ? bitcoin.networks.bitcoin : bitcoin.networks.testnet;
-
+  const currentWalletIndex = accessService.store.currentWallet.index;
+  
   let childNodeXOnlyPubkey;
 
   if (!isFromWif) {
     const bip32 = BIP32Factory(ecc);
     const seed = await bip39.mnemonicToSeed(mnemonic);
-    const rootKey = bip32.fromSeed(seed, network);
+    const rootKey = bip32.fromSeed(seed, currentNetwork);
     const childNode = rootKey.derivePath(`m/86'/0'/0'/0/${currentWalletIndex - 1}`);
     childNodeXOnlyPubkey = toXOnly(childNode.publicKey);
   }
