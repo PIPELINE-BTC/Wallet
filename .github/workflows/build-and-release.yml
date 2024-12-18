@@ -21,8 +21,7 @@ jobs:
           LAST_TAG=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "0.0.0")
           echo "Last tag: $LAST_TAG"
 
-          # If the last tag is 0.62.0, force the next tag to be 0.62.1
-          if [ "$LAST_TAG" = "0.62.0" ]; then
+          if [ "$LAST_TAG" = "0.61.10" ]; then
             NEW_TAG="0.62.1"
           else
             # Split into MAJOR, MINOR, PATCH
