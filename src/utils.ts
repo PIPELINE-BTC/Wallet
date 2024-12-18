@@ -1,3 +1,5 @@
+import axios from "axios";
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export const getAddress = (address: string = '') => {
   const firstSymbols = address.slice(0, 5);
@@ -85,3 +87,23 @@ export function assert(condition: unknown, msg: string): asserts condition {
   }
 }
 
+export async function convertBtcToUsd(
+  valueInBtc: number,
+  options?: { priceOnly?: boolean }
+): Promise<number | undefined> {
+  try {
+    const response = await axios.get<{ USD: number }>('https://mempool.space/api/v1/prices');
+    const btcPriceInUsd = response.data.USD;
+
+    if (options?.priceOnly) {
+      return btcPriceInUsd;
+    }
+
+    const result = btcPriceInUsd * valueInBtc;
+
+    return parseFloat(result.toFixed(2));
+  } catch (error) {
+    console.error('Error fetching BTC price:', error);
+    return undefined;
+  }
+}

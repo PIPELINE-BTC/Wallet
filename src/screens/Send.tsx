@@ -28,6 +28,8 @@ import useDebounce from "../hooks/useDebounce";
 
 import GetIconLogo from "../common/GetIconLogo";
 
+import { convertBtcToUsd } from "../utils";
+
 interface ISendForm {
   recipient: string;
   amount: number;
@@ -109,8 +111,8 @@ const customComponents = {
   ),
   SingleValue: ({ data }: any) => {
     const { ticker, id, amt } = data.value || {};
-    const displayText = ticker ? 
-      (id === "0" || (ticker === "BTC" && id === undefined) ? ticker.toUpperCase() : `${ticker.toUpperCase()}:${id}`) : 
+    const displayText = ticker ?
+      (id === "0" || (ticker === "BTC" && id === undefined) ? ticker.toUpperCase() : `${ticker.toUpperCase()}:${id}`) :
       "";
 
     return (
@@ -282,6 +284,10 @@ const Send: FC<any> = ({
   const [total, setTotal] = useState<any>(0);
   const [max, setMax] = useState<any>(0);
   const [calculatedFees, setCalculatedFee] = useState(0);
+  const [calculatedFeesInUSD, setcalculatedFeesInUSD] = useState(0);
+  const [btcPriceInUSD, setBtcPriceInUSD] = useState<number | null>(null);
+  const [calculatedUsdAmount, setCalculatedUsdAmount] = useState<number | null>(null);
+
   const {
     tokens,
     nfts,
@@ -324,6 +330,26 @@ const Send: FC<any> = ({
   useEffect(() => {
     getFeesList();
   }, []);
+
+  useEffect(() => {
+    const fetchPrice = async () => {
+      const price = await convertBtcToUsd(1, { priceOnly: true });
+      if (price) {
+        setBtcPriceInUSD(price);
+      }
+    };
+    fetchPrice();
+  }, []);
+
+  useEffect(() => {
+    if (selectedToken?.ticker === "BTC" && btcPriceInUSD !== null) {
+      const numericAmount = amount || 0;
+      const converted = numericAmount * btcPriceInUSD;
+      setCalculatedUsdAmount(converted);
+    } else {
+      setCalculatedUsdAmount(null);
+    }
+  }, [amount, selectedToken, btcPriceInUSD]);
 
   useEffect(() => {
     if (queryData) {
@@ -386,7 +412,7 @@ const Send: FC<any> = ({
     }
     const dust = 0.00000400;
 
-    if(selectedToken?.ticker === "BTC" && selectedToken?.id === undefined && data.amount < dust){
+    if (selectedToken?.ticker === "BTC" && selectedToken?.id === undefined && data.amount < dust) {
       setErrorMessage("Amount sent should be > 0.00000400 BTC");
       return;
     }
@@ -636,6 +662,21 @@ const Send: FC<any> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFee, selectedToken, debouncedValue, customFee]);
 
+  useEffect(() => {
+    if (calculatedFees > 0) {
+      convertBtcToUsd(calculatedFees)
+        .then((usdValue) => {
+          if (usdValue !== undefined) {
+            setcalculatedFeesInUSD(usdValue);
+          } else {
+          }
+        })
+        ;
+    } else {
+      setcalculatedFeesInUSD(0);
+    }
+  }, [calculatedFees]);
+
   return (
     <>
       <div className="p-1 w-full grid grid-cols-2 gap-1 bg-modal-dark rounded-md mb-3 overflow-auto">
@@ -770,41 +811,50 @@ const Send: FC<any> = ({
               </span>
             </p>
           </div>
-          <Controller
-            name="amount"
-            control={control}
-            rules={{
-              required: "This field is required",
-              max: activeTab === "tokens" ? +max : +selectedToken?.amt || 0,
-              pattern: {
-                value: new RegExp(`^\\d*(\\.\\d{0,${selectedToken?.ticker === "BTC" && selectedToken?.id === undefined ? 8 : (selectedToken?.deci || 2)}})?$`),
-                message: `Up to ${selectedToken?.ticker === "BTC" && selectedToken?.id === undefined ? 8 : selectedToken?.deci} decimal places allowed`
-              }
-            }}
-            render={({ field }) => (
-              <input
-                type="text"
-                {...field}
-                value={field.value}
-                onChange={(e) => {
-                  let value = e.target.value;
-                  const _regEx = new RegExp(`^\\d*(\\.\\d{0,${selectedToken?.ticker === "BTC" && selectedToken?.id === undefined ? 8 : (selectedToken?.deci || 2)}})?$`);
-                  if (_regEx.test(value)) {
-                    const numericValue = parseFloat(value);
-                    const maxValue = activeTab === "tokens" ? +max : +selectedToken?.amt || 0;
+          <div className="relative">
+            <Controller
+              name="amount"
+              control={control}
+              rules={{
+                required: "This field is required",
+                max: activeTab === "tokens" ? +max : +selectedToken?.amt || 0,
+                pattern: {
+                  value: new RegExp(`^\\d*(\\.\\d{0,${selectedToken?.ticker === "BTC" && selectedToken?.id === undefined ? 8 : (selectedToken?.deci || 2)}})?$`),
+                  message: `Up to ${selectedToken?.ticker === "BTC" && selectedToken?.id === undefined ? 8 : selectedToken?.deci} decimal places allowed`
+                }
+              }}
+              render={({ field }) => (
+                <div className="relative">
+                  <input
+                    type="text"
+                    {...field}
+                    value={field.value}
+                    onChange={(e) => {
+                      let value = e.target.value;
+                      const _regEx = new RegExp(`^\\d*(\\.\\d{0,${selectedToken?.ticker === "BTC" && selectedToken?.id === undefined ? 8 : (selectedToken?.deci || 2)}})?$`);
+                      if (_regEx.test(value)) {
+                        const numericValue = parseFloat(value);
+                        const maxValue = activeTab === "tokens" ? +max : +selectedToken?.amt || 0;
 
-                    if (numericValue > maxValue) {
-                      value = maxValue.toString();
-                    }
-                    field.onChange(value);
-                  }
-                }}
-                min={0}
-                max={activeTab === "tokens" ? +max : +selectedToken?.amt || 0}
-                className="input"
-              />
-            )}
-          />
+                        if (numericValue > maxValue) {
+                          value = maxValue.toString();
+                        }
+                        field.onChange(value);
+                      }
+                    }}
+                    min={0}
+                    max={activeTab === "tokens" ? +max : +selectedToken?.amt || 0}
+                    className="input pr-16"
+                  />
+                  {selectedToken?.ticker === "BTC" && calculatedUsdAmount !== null && (
+                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray text-sm">
+                      ≈ ${calculatedUsdAmount.toFixed(2)}
+                    </span>
+                  )}
+                </div>
+              )}
+            />
+          </div>
           {errors.amount && (
             <p className="validation-error">{errors.amount.message}</p>
           )}
@@ -874,7 +924,7 @@ const Send: FC<any> = ({
             errorMessage
           ) : (
             <>
-              Fee: <span className="text-white font-medium">{calculatedFees.toString() + ' BTC'}</span>
+              Fee: <span className="text-white font-medium">{`${calculatedFees.toString()} BTC ($${calculatedFeesInUSD})`}</span>
             </>
           )}
         </p>

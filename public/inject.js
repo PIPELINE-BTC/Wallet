@@ -69,6 +69,39 @@
       window.dispatchEvent(event);
     });
   };
+
+  window.pipeline.signPsbts = function (psbtsBase64, options) {
+    return new Promise((resolve, reject) => {
+      const timeoutDuration = 15000;
+      let timeoutId;
+  
+      const handleMessage = (result) => {
+        if (result.data?.action === "signedPsbts" || result.data?.action === "failedSignedPsbts") {
+          clearTimeout(timeoutId);
+          window.removeEventListener("message", handleMessage);
+  
+          if (result.data.action === "signedPsbts") {
+            resolve(result.data.signedPsbtsBase64);
+          } else if (result.data.action === "failedSignedPsbts") {
+            reject(new Error(result.data.error));
+          }
+        }
+      };
+  
+      window.addEventListener("message", handleMessage);
+  
+      timeoutId = setTimeout(() => {
+        window.removeEventListener("message", handleMessage);
+        reject(new Error("Timeout: please try again."));
+      }, timeoutDuration);
+  
+      const event = new CustomEvent("signPsbts", {
+        detail: { psbtsBase64, options }, 
+      });
+  
+      window.dispatchEvent(event);
+    });
+  };  
   
   window.addEventListener("message", (result) => {
     const { action, account, address, pubInternalKey, transaction } = result.data || {};
