@@ -90,6 +90,8 @@ export const signPsbt = async (psbtHex: string, index = -1) => {
       throw "No input found to sign with this address";
     }
 
+    // Add Finalization option
+
     const signedPsbtBase64 = psbt.toBase64();
     const signedPsbtHex = base64ToHex(signedPsbtBase64);
 
@@ -102,6 +104,137 @@ export const signPsbt = async (psbtHex: string, index = -1) => {
   catch (error) {
     chrome.runtime.sendMessage({
       action: "failedSignedPsbt",
+      error: error.toString(),
+    });
+  }
+};
+
+export const signPsbts = async (
+  psbts: string[],
+  options?: { finalize?: boolean; index?: number }[]
+) => {
+
+  try {
+
+    if (!options) {
+      options = psbts.map(() => ({ finalize: true, index: -1 }));
+    }
+
+    if (psbts.length !== options.length) {
+      throw new Error("The psbts array and options array must have the same length.");
+    }
+
+    const signedPsbtResults: { psbt: string; signed?: boolean; error?: string }[] = [];
+    let allSigned = true;
+
+    for (let i = 0; i < psbts.length; i++) {
+      const psbtHex = psbts[i];
+      const finalizeOption = options[i]?.finalize ?? true;
+      const targetIndex = options[i]?.index ?? -1;
+
+      try {
+        const psbtUncoded = hexToBase64(psbtHex);
+
+        const selectedNetwork = accessService.store.network;
+        const network =
+          selectedNetwork === "testnet"
+            ? bitcoin.networks.testnet
+            : bitcoin.networks.bitcoin;
+        bitcoin.initEccLib(ecc);
+
+        const psbt = bitcoin.Psbt.fromBase64(psbtUncoded, { network: network });
+
+        let childNode, childNodeXOnlyPubkey;
+
+        const isFromWif = accessService.store.currentAccount.wif ? true : false;
+
+        const mnemonic = isFromWif
+          ? accessService.store.currentAccount.wif.livenet
+          : accessService.store.currentAccount.mnemonic;
+        const currentWalletIndex = accessService.store.currentWallet.index;
+
+        if (!isFromWif) {
+          const bip32 = BIP32Factory(ecc);
+          const seed = await bip39.mnemonicToSeed(mnemonic);
+          const rootKey = bip32.fromSeed(seed, network);
+          childNode = rootKey.derivePath(`m/86'/0'/0'/0/${currentWalletIndex - 1}`);
+          childNodeXOnlyPubkey = toXOnly(childNode.publicKey);
+        } else {
+          const ECPairInstance: ECPairAPI = ECPairFactory(ecc);
+          const keyPair = ECPairInstance.fromWIF(mnemonic);
+          childNode = keyPair;
+          childNodeXOnlyPubkey = toXOnly(childNode.publicKey);
+        }
+
+        const tweakedChildNode = childNode.tweak(
+          bitcoin.crypto.taggedHash("TapTweak", childNodeXOnlyPubkey)
+        );
+
+        let isSigned = false;
+
+        if (targetIndex === -1) {
+          for (let j = 0; j < psbt.inputCount; j++) {
+            const inputData = psbt.data.inputs[j];
+            const inputKeyBuffer = inputData.tapInternalKey;
+            if (inputKeyBuffer && childNodeXOnlyPubkey.equals(inputKeyBuffer)) {
+              const sighashType =
+                inputData.sighashType || bitcoin.Transaction.SIGHASH_ALL;
+              psbt.signInput(j, tweakedChildNode, [sighashType]);
+            }
+          }
+          isSigned = true;
+        } else {
+          if (targetIndex < 0 || targetIndex >= psbt.inputCount) {
+            throw new Error(`Invalid index ${targetIndex} for PSBT with ${psbt.inputCount} inputs.`);
+          }
+
+          const inputData = psbt.data.inputs[targetIndex];
+          const inputKeyBuffer = inputData.tapInternalKey;
+          if (inputKeyBuffer && childNodeXOnlyPubkey.equals(inputKeyBuffer)) {
+            const sighashType =
+              inputData.sighashType || bitcoin.Transaction.SIGHASH_ALL;
+            psbt.signInput(targetIndex, tweakedChildNode, [sighashType]);
+            isSigned = true;
+          } else {
+            throw "No input found to sign with this address at the specified index";
+          }
+        }
+
+        if (!isSigned) {
+          throw "No input found to sign with this address";
+        }
+
+        if (finalizeOption) {
+          psbt.finalizeAllInputs();
+        }
+
+        const signedPsbtBase64 = psbt.toBase64();
+        const signedPsbtHex = base64ToHex(signedPsbtBase64);
+
+        signedPsbtResults.push({ psbt: signedPsbtHex });
+
+      } catch (error) {
+        signedPsbtResults.push({ psbt: psbtHex, signed: false, error: error.toString() });
+        allSigned = false;
+      }
+    }
+
+    if (!allSigned) {
+      const firstError = signedPsbtResults.find(result => !result.signed)?.error?.toString() || "Unknown error occurred";
+      chrome.runtime.sendMessage({
+        action: "failedSignedPsbts",
+        error: firstError,
+      });
+    } else {
+      chrome.runtime.sendMessage({
+        action: "signPsbtsSuccess",
+        signedPsbtsBase64: signedPsbtResults,
+      });
+    }
+  }
+  catch (error) {
+    chrome.runtime.sendMessage({
+      action: "failedSignedPsbts",
       error: error.toString(),
     });
   }
@@ -335,12 +468,14 @@ export const sendSats = async (
         try {
           const rawTxResponse = await axios.get(hexUrl);
           const decodedTx = decodeBtcRawTx(rawTxResponse.data);
-          if (inputD.vout >= decodedTx.outs.length) {
+          if (inputD.index >= decodedTx.outs.length) {
             continue;
           }
-          inputToAdd.witnessUtxo.script = Buffer.from(decodedTx.outs[inputD.vout].script, "hex");
 
-          psbt.addInput(inputToAdd);
+          const utxoScript = Buffer.from(decodedTx.outs[inputD.index].script, "hex");
+          inputD.witnessUtxo.script = utxoScript;
+
+          psbt.addInput(inputD);
         } catch (error) {
           console.error(`Failed to fetch or decode transaction: ${error}`);
           throw new Error("Failed to process inputs due to external data retrieval error");
@@ -855,10 +990,12 @@ export const sendTransferTransaction = async (
       try {
         const rawTxResponse = await axios.get(hexUrl);
         const decodedTx = decodeBtcRawTx(rawTxResponse.data);
-        if (inputD.vout >= decodedTx.outs.length) {
+        if (inputD.index >= decodedTx.outs.length) {
           continue;
         }
-        inputD.witnessUtxo.script = Buffer.from(decodedTx.outs[inputD.index].script, "hex");
+
+        const utxoScript = Buffer.from(decodedTx.outs[inputD.index].script, "hex");
+        inputD.witnessUtxo.script = utxoScript;
 
         psbt.addInput(inputD);
       } catch (error) {

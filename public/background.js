@@ -81,7 +81,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     });
 
     return true;
-  } else if (request.action === "signPsbt") {
+  } else if (request.action === "signPsbt") {    
     chrome.windows.create({
       url: chrome.runtime.getURL(
         `index.html?path=${request.path}&expanded=true&psbtBase64=${request.psbtBase64}`
@@ -105,7 +105,37 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     });
 
     return true;
-  } else if (request.action === "setPassword") {
+  } else if (request.action === "signPsbts") {
+    let url = `index.html?path=${request.path}&expanded=true&psbtsBase64=${request.psbtsBase64.join(',')}`;
+
+    if (Array.isArray(request.options) && request.options.length > 0) {
+      const encodedOptions = encodeURIComponent(JSON.stringify(request.options));
+      url = url + `&options=${encodedOptions}`;
+    }
+
+    chrome.windows.create({
+      url: chrome.runtime.getURL(url),
+      type: "popup",
+      width: 355,
+      height: 628,
+      top: 100,
+      left: 100,
+    });
+
+    chrome.runtime.onMessage.addListener(function (payload) {
+      if (payload.action === "signPsbtsSuccess") {
+        const signedPsbtsBase64 = payload.signedPsbtsBase64;
+        sendResponse({ signedPsbtsBase64: signedPsbtsBase64 });
+      }
+
+      if (payload.action === "failedSignedPsbts") {
+        sendResponse({ error: payload.error });
+      }
+    });
+
+    return true;
+  }
+  else if (request.action === "setPassword") {
     password = request.data;
     sendResponse({});
     return true;

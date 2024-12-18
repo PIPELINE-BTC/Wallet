@@ -107,6 +107,36 @@ window.addEventListener("signPsbt", (event) => {
   }
 });
 
+window.addEventListener("signPsbts", (event) => {
+  if (event.type === "signPsbts") {
+    try {
+      chrome.runtime.sendMessage(
+        chrome.runtime.id,
+        {
+          action: "signPsbts",
+          path: "/sign-psbt",
+          psbtsBase64: event.detail.psbtsBase64,
+          options: event.detail.options,
+        },
+        function (response) {
+          if (response.error) {
+            window.postMessage({ action: "failedSignedPsbts", error: response.error }, "*");
+            return { error: response.error };
+          } else {
+            window.postMessage(
+              { action: "signedPsbts", signedPsbtsBase64: response.signedPsbtsBase64 },
+              "*"
+            );
+            return { signedPsbtsBase64: response.signedPsbtsBase64 };
+          }
+        }
+      );
+    } catch (e) {
+      console.log(e);
+    }
+  }
+});
+
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.type === "connect") {
     const address = request.address;

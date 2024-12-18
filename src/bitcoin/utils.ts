@@ -14,6 +14,27 @@ export enum OutputType {
   Legacy = 'legacy',
 }
 
+export interface Options {
+  finalize?: boolean;
+  index?: number;
+}
+
+export const isValidOption = (option: any): option is Options => {
+  if (typeof option !== "object" || option === null) return false;
+
+  const allowedKeys = ["finalize", "index"];
+  const optionKeys = Object.keys(option);
+
+  const hasOnlyAllowedKeys = optionKeys.every((key) => allowedKeys.includes(key));
+
+  const hasValidFinalize =
+    option.finalize === undefined || typeof option.finalize === "boolean";
+  const hasValidIndex =
+    option.index === undefined || typeof option.index === "number";
+
+  return hasOnlyAllowedKeys && hasValidFinalize && hasValidIndex;
+};
+
 export function textToHex(text: string) {
   const encoder = new TextEncoder().encode(text);
   return [...new Uint8Array(encoder)]
