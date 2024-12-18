@@ -17,27 +17,42 @@ jobs:
 
       - name: Custom Version Bump
         run: |
-          LAST_TAG=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "")
-          if [ -z "$LAST_TAG" ]; then
-            NEW_TAG="0.61.2"
+          # Get the last tag
+          LAST_TAG=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "0.0.0")
+          echo "Last tag: $LAST_TAG"
+
+          # If the last tag is 0.62.0, force the next tag to be 0.62.1
+          if [ "$LAST_TAG" = "0.62.0" ]; then
+            NEW_TAG="0.62.1"
           else
+            # Split into MAJOR, MINOR, PATCH
             IFS='.' read -ra ADDR <<< "$LAST_TAG"
             MAJOR=${ADDR[0]}
             MINOR=${ADDR[1]}
             PATCH=${ADDR[2]}
-            if [ "$PATCH" -ge 10 ]; then
+
+            # Increment PATCH or MINOR if necessary
+            if [ "$PATCH" -ge 9 ]; then
               PATCH=0
               MINOR=$(($MINOR + 1))
             else
               PATCH=$(($PATCH + 1))
             fi
+
+            # Generate new tag
             NEW_TAG="$MAJOR.$MINOR.$PATCH"
           fi
+
+          echo "Generated new tag: $NEW_TAG"
+
+          # Set the tag in GitHub environment
           echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
           echo "TAG=$NEW_TAG" >> $GITHUB_ENV
 
       - name: Create and Push Tag
         run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
           git tag ${{ env.NEW_TAG }}
           git push origin ${{ env.NEW_TAG }}
 
