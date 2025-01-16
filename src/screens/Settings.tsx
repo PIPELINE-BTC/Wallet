@@ -90,7 +90,7 @@ const Settings: FC = () => {
           </div>
           <div className="grid grid-cols-[2fr_1fr]">
             <p className="text-gray font-sm my-auto">
-              Version: 0.62.1
+              Version: 0.62.2
             </p>
             <div className="flex gap-2">
               <a

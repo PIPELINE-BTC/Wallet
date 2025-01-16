@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "PIPELINE Wallet",
   "description": "PIPELINE Wallet, manage and store your Bitcoin assets easily. Support the PIPE protocol.",
-  "version": "0.62.0",
+  "version": "0.62.2",
   "icons": {
     "16": "pipeline16.png",
     "32": "pipeline48.png",

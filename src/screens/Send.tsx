@@ -13,6 +13,9 @@ import { getAddress } from "../utils";
 import Symbol from "../assets/img/ankr.svg?react";
 import TokenIcon from "../common/TokenIcon";
 import Bitcoin from "../assets/img/bitcoin.svg?react";
+
+import * as bitcoin from "bitcoinjs-lib";
+
 import {
   decodePB,
   hexToBase64Image,
@@ -29,6 +32,7 @@ import useDebounce from "../hooks/useDebounce";
 import GetIconLogo from "../common/GetIconLogo";
 
 import { convertBtcToUsd } from "../utils";
+import { validateBitcoinAddress } from "../bitcoin/utils";
 
 interface ISendForm {
   recipient: string;
@@ -677,6 +681,15 @@ const Send: FC<any> = ({
     }
   }, [calculatedFees]);
 
+  const formValidation = {
+    recipient: {
+      required: "This field is required",
+      validate: (value: string) =>
+        validateBitcoinAddress(value, network === "testnet" ? bitcoin.networks.testnet : bitcoin.networks.bitcoin) ||
+        "Invalid Bitcoin address",
+    }
+  };
+  
   return (
     <>
       <div className="p-1 w-full grid grid-cols-2 gap-1 bg-modal-dark rounded-md mb-3 overflow-auto">
@@ -758,13 +771,7 @@ const Send: FC<any> = ({
           <div className="relative">
             <input
               id="recipient"
-              {...register("recipient", {
-                required: "This field is required",
-                pattern: {
-                  value: /^(tb1|bcrt1|bc1)[a-zA-HJ-NP-Z0-9]{8,87}$/,
-                  message: "Invalid Taproot address",
-                },
-              })}
+              {...register('recipient', formValidation.recipient)}
               style={{ paddingRight: "42px" }}
             />
             <button
@@ -924,7 +931,7 @@ const Send: FC<any> = ({
             errorMessage
           ) : (
             <>
-              Fee: <span className="text-white font-medium">{`${calculatedFees.toString()} BTC ($${calculatedFeesInUSD})`}</span>
+              Fee: <span className="text-white font-medium">{`${calculatedFees.toString()} BTC ($${calculatedFeesInUSD.toFixed(2)})`}</span>
             </>
           )}
         </p>
