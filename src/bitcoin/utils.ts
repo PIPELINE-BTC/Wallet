@@ -123,8 +123,7 @@ export function estimateTransactionVBytes(inputCount: number, outputCount: numbe
   const finalScriptSize = estimateScriptSize(scriptSize);
 
   const totalVBytes = baseSize + inputBaseSize + outputSize + finalScriptSize;
-
-  return Math.ceil(totalVBytes);
+  return totalVBytes;
 }
 
 function estimateInputSize(addressType: string, count: number): number {

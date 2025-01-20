@@ -326,7 +326,12 @@ export const sendSats = async (
 
   let amountToBeSentSat = Math.floor(amountBtc * 1e8);
 
-  let estimatedFee = (111 - 57) * txfee;
+  const senderAddressType = getAddressType(to, network);
+  const outputSize = estimateOutputVbytes(senderAddressType);
+  
+  const inputSize = INPUT_SIZES.p2tr;
+
+  let estimatedFee = Math.floor((BASE_OVERHEAD + inputSize + outputSize) * txfee);
 
   if (amountToBeSentSat < 0) {
     throw new Error("Not enough BTC to cover fees");
@@ -419,9 +424,9 @@ export const sendSats = async (
   const rawTx = _psbt.extractTransaction(true);
   const vsize = rawTx.virtualSize();
 
-  let calculatedFee = vsize * txfee;
+  let calculatedFee = Math.floor(vsize * txfee);
 
-  changeSat = isMax ? amountToBeSentSat - calculatedFee : totalSelectedValue - amountToBeSentSat - calculatedFee;
+  changeSat = Math.floor(isMax ? amountToBeSentSat - calculatedFee : totalSelectedValue - amountToBeSentSat - calculatedFee);
 
   if (changeSat < 0) {
     if (balanceSat - amountToBeSentSat - calculatedFee < 0) {
@@ -440,10 +445,10 @@ export const sendSats = async (
           throw new Error("Not enough funds per UTXO, limit of 10 more inputs reached");
         }
 
-        calculatedFee += additionalFeeForInput;
+        calculatedFee += Math.floor(additionalFeeForInput);
         additionalInputs.push(inputD);
 
-        changeSat += inputD.witnessUtxo.value - additionalFeeForInput;
+        changeSat += inputD.witnessUtxo.value - Math.floor(additionalFeeForInput);
         if (changeSat >= 0) {
           break;
         }
@@ -496,7 +501,7 @@ export const sendSats = async (
   const rawTx2 = psbt.extractTransaction(true);
   const vsize2 = rawTx2.virtualSize();
 
-  calculatedFee = vsize2 * txfee;
+  calculatedFee = Math.floor(vsize2 * txfee);
 
   if (!isActuallySend) {
     return { calculatedFee, balanceSat };
@@ -508,7 +513,6 @@ export const sendSats = async (
 
   if (selectedNetwork === "testnet") {
     pushURL = `https://mempool.space/testnet/api/tx`;
-    pushURL = `https://data.ppline.app:5099/push`;
 
   } else {
     pushURL = `https://data2.ppline.app:5020/push`;
@@ -788,7 +792,7 @@ export const sendTransferTransaction = async (
   const baseInput = 2;
   const tapscriptBitcoin = bitcoin.script.compile(data);
 
-  calculatedFee = estimateTransactionVBytes(baseInput, baseOutput, tapscriptBitcoin.length) * txfee;
+  calculatedFee = Math.floor(estimateTransactionVBytes(baseInput, baseOutput, tapscriptBitcoin.length) * txfee);
 
   let inputsData = [];
   let availableInput = [];
@@ -946,7 +950,7 @@ export const sendTransferTransaction = async (
   const _rawTx = _psbt.extractTransaction(true);
   const _vsize = _rawTx.virtualSize();
 
-  calculatedFee = _vsize * txfee + postageFee;
+  calculatedFee = Math.floor(_vsize * txfee + postageFee);
   changeSat = balanceSat - calculatedFee;
 
   let totalValueAdded = 0;
@@ -966,10 +970,10 @@ export const sendTransferTransaction = async (
 
       totalValueAdded += inputD.witnessUtxo.value;
       additionalInputs.push(inputD);
-      calculatedFee += 57 * txfee;
-      let _utxoValue = inputD.witnessUtxo.value - 57 * txfee;
+      calculatedFee += Math.floor(57 * txfee);
+      let _utxoValue = Math.floor(inputD.witnessUtxo.value - 57 * txfee);
 
-      changeSat += inputD.witnessUtxo.value - 57 * txfee;
+      changeSat += _utxoValue;
 
       if (changeSat >= 0) {
         break;
@@ -1025,7 +1029,7 @@ export const sendTransferTransaction = async (
   const rawTx = psbt.extractTransaction(true);
   const vsize = rawTx.virtualSize();
 
-  calculatedFee = vsize * txfee + postageFee;
+  calculatedFee = Math.floor(vsize * txfee + postageFee);
 
   if (totalValueAdded + totalSelectedValue < calculatedFee) {
     let _missingSats = (calculatedFee - (totalValueAdded + totalSelectedValue)) * 10 ** -8;
