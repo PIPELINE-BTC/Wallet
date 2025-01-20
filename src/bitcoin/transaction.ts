@@ -4,7 +4,7 @@
 import BIP32Factory from "bip32";
 import * as ecc from "@bitcoin-js/tiny-secp256k1-asmjs";
 import * as bip39 from "bip39";
-import { toXOnly } from "./utils";
+import { toXOnly, getAddressType, estimateOutputVbytes, BASE_OVERHEAD, INPUT_SIZES, OUTPUT_SIZES } from "./utils";
 import * as bitcoin from 'bitcoinjs-lib';
 import ECPairFactory from "ecpair";
 
@@ -276,6 +276,7 @@ export const sendSats = async (
     network,
   });
 
+
   const tweakedChildNode = childNode.tweak(
     bitcoin.crypto.taggedHash("TapTweak", childNodeXOnlyPubkey)
   );
@@ -320,7 +321,7 @@ export const sendSats = async (
   const availableInput = [];
   const usedUtxos = new Set();
   const selectedUtxos = [];
-  const additionalFeeForInput = 57 * txfee;
+  const additionalFeeForInput = INPUT_SIZES.p2tr * txfee;
   let totalSelectedValue = 0;
   let totalAvailableValue = 0;
 
@@ -331,7 +332,11 @@ export const sendSats = async (
   
   const inputSize = INPUT_SIZES.p2tr;
 
+<<<<<<< HEAD
   let estimatedFee = Math.floor((BASE_OVERHEAD + inputSize + outputSize) * txfee);
+=======
+  let estimatedFee = (BASE_OVERHEAD + inputSize + outputSize) * txfee;
+>>>>>>> a3cfd33e7f6c028ea341dbb527ff6c5434e90c92
 
   if (amountToBeSentSat < 0) {
     throw new Error("Not enough BTC to cover fees");
@@ -788,7 +793,12 @@ export const sendTransferTransaction = async (
     data = [...data, ...changeData];
   }
 
-  const baseOutput = 3;
+  const baseOutput = [
+    { type: getAddressType(to), count: 1 },
+    ...(selectedToken.cumulativeAmount > transferAmount ? [{ type: "p2tr", count: 1 }] : []),
+    { type: "p2tr", count: 1 },
+  ];
+  
   const baseInput = 2;
   const tapscriptBitcoin = bitcoin.script.compile(data);
 

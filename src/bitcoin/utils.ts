@@ -1,18 +1,21 @@
 import { Buffer } from "buffer";
 import * as bitcoin from 'bitcoinjs-lib';
 
+export const BASE_OVERHEAD = 10.5;
 
-export enum InputType {
-  Taproot = 'taproot',
-  Segwit = 'segwit',
-  Legacy = 'legacy',
-}
+export const OUTPUT_SIZES: { [key: string]: number } = {
+  p2tr: 43,    // Taproot
+  p2wpkh: 31,  // Native SegWit
+  p2sh: 34,    // Script Hash
+  p2pkh: 34    // Legacy
+};
 
-export enum OutputType {
-  Taproot = 'taproot',
-  Segwit = 'segwit',
-  Legacy = 'legacy',
-}
+export const INPUT_SIZES: { [key: string]: number } = {
+  p2tr: 57.5,    // Taproot
+  p2wpkh: 68,    // Native SegWit
+  p2sh: 91,      // Script Hash
+  p2pkh: 148     // Legacy
+};
 
 export interface Options {
   finalize?: boolean;
@@ -115,11 +118,19 @@ export function hexToBase64(hex: string): string {
   
   return buffer.toString('base64');
 }
-export function estimateTransactionVBytes(inputCount: number, outputCount: number, scriptSize: number, type: string = "p2tr"): number {
-  const baseSize = type === "p2tr" ? 10.5 : 10;
 
-  const inputBaseSize = estimateInputSize(type, inputCount);
-  const outputSize = estimateOutputSize(type, outputCount);
+export function estimateTransactionVBytes(
+  inputCount: number, 
+  outputs: { type: string, count: number }[], 
+  scriptSize: number = 0, 
+  inputType: string = "p2tr"
+): number {
+  const baseSize = inputType === "p2tr" ? BASE_OVERHEAD : 10;
+
+  const inputBaseSize = estimateInputSize(inputType, inputCount);
+  const outputSize = outputs.reduce((total, output) => {
+    return total + estimateOutputSize(output.type, output.count);
+  }, 0);
   const finalScriptSize = estimateScriptSize(scriptSize);
 
   const totalVBytes = baseSize + inputBaseSize + outputSize + finalScriptSize;
@@ -127,37 +138,17 @@ export function estimateTransactionVBytes(inputCount: number, outputCount: numbe
 }
 
 function estimateInputSize(addressType: string, count: number): number {
-  let sizeByInput: number = 0;
-
-  switch (addressType) {
-      case "p2wpkh":
-          sizeByInput = 68;
-          break;
-
-      case "p2tr":
-          sizeByInput = 57.5;
-          break;
-  }
-
+  const sizeByInput = INPUT_SIZES[addressType.toLowerCase()] || INPUT_SIZES.p2tr;
   return sizeByInput * count;
 }
 
 function estimateOutputSize(addressType: string, count: number): number {
-  let sizeByOutput: number = 0;
-
-  switch (addressType) {
-      case "p2wpkh":
-          sizeByOutput = 31;
-          break;
-      case "p2tr":
-          sizeByOutput = 43;
-          break;
-  }
-
-  return count * sizeByOutput;
+  const sizeByOutput = OUTPUT_SIZES[addressType.toLowerCase()] || OUTPUT_SIZES.p2tr;
+  return sizeByOutput * count;
 }
 
 function estimateScriptSize(compiledScriptSize: number): number {
+  if (compiledScriptSize === 0) return 0;
   const valueSize = 8;
   const varintSize = compiledScriptSize < 0xFD ? 1 : compiledScriptSize <= 0xFFFF ? 3 : 5;
   const totalSize = valueSize + varintSize + compiledScriptSize;
@@ -165,37 +156,42 @@ function estimateScriptSize(compiledScriptSize: number): number {
   return totalSize;
 }
 
-export function getAverageVbytes(inputType: InputType = InputType.Taproot, outputType: OutputType = OutputType.Taproot): { inputVbytes: number; outputVbytes: number } {
-  let inputVbytes: number;
-  let outputVbytes: number;
-
-  switch (inputType) {
-      case InputType.Taproot:
-          inputVbytes = 57.5;
-          break;
-      case InputType.Segwit:
-          inputVbytes = 68;
-          break;
-      case InputType.Legacy:
-          inputVbytes = 148;
-          break;
-      default:
-          inputVbytes = 57.5;
+export function estimateOutputVbytes(addressType: string): number {
+  switch(addressType) {
+    case 'p2tr':
+      return OUTPUT_SIZES.p2tr;
+    case 'p2wpkh':
+      return OUTPUT_SIZES.p2wpkh;
+    case 'p2pkh':
+    case 'p2sh':
+      return OUTPUT_SIZES.p2sh;
+    default:
+      return OUTPUT_SIZES.p2tr;
   }
+}
 
-  switch (outputType) {
-      case OutputType.Taproot:
-          outputVbytes = 43;
-          break;
-      case OutputType.Segwit:
-          outputVbytes = 31;
-          break;
-      case OutputType.Legacy:
-          outputVbytes = 34;
-          break;
-      default:
-          outputVbytes = 43;
+export function validateBitcoinAddress(address: string, network: bitcoin.Network): boolean {
+  try {
+    bitcoin.address.toOutputScript(address, network);
+    return true;
+  } catch {
+    return false;
   }
+}
 
-  return { inputVbytes, outputVbytes };
+// Cette fonction reste utile pour les calculs de frais
+export function getAddressType(address: string): string {
+  if (address.startsWith('bc1p') || address.startsWith('tb1p')) {
+    return 'p2tr';
+  }
+  if (address.startsWith('bc1q') || address.startsWith('tb1q')) {
+    return 'p2wpkh';
+  }
+  if (address.startsWith('3') || address.startsWith('2')) {
+    return 'p2sh';
+  }
+  if (address.startsWith('1') || address.startsWith('m') || address.startsWith('n')) {
+    return 'p2pkh';
+  }
+  return 'unknown';
 }

@@ -1,18 +1,19 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { FC, useContext, useEffect } from 'react';
+// /* eslint-disable @typescript-eslint/no-explicit-any */
+import { useContext, useEffect } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
-
-import HeaderWithNav from '../common/HeaderWithNav';
+import * as bitcoin from 'bitcoinjs-lib';
+import { validateBitcoinAddress } from '../bitcoin/utils';
 import { AccountContext } from '../AccountContext';
+import HeaderWithNav from '../common/HeaderWithNav';
 
 type EditFormInput = {
   name: string;
   address: string;
 };
 
-const ContactForm: FC = () => {
-  const { accessService, addressBook } = useContext(AccountContext);
+const ContactForm = () => {
+  const { accessService, addressBook, network } = useContext(AccountContext);
   const {
     handleSubmit,
     register,
@@ -21,6 +22,8 @@ const ContactForm: FC = () => {
   } = useForm<EditFormInput>();
   const { id } = useParams();
   const navigate = useNavigate();
+
+  const currentNetwork = network === 'livenet' ? bitcoin.networks.bitcoin : bitcoin.networks.testnet;
 
   const onSubmit: SubmitHandler<EditFormInput> = (data) => {
     if (id) {
@@ -57,12 +60,7 @@ const ContactForm: FC = () => {
             id="name"
             {...register('name', { required: 'This field is required' })}
           />
-          {
-            errors.name &&
-            <p className="text-sm text-red-400">
-              {errors.name.message}
-            </p>
-          }
+          {errors.name && <p className="text-sm text-red-400">{errors.name.message}</p>}
         </div>
         <div className="mb-3">
           <label htmlFor="address">
@@ -72,18 +70,16 @@ const ContactForm: FC = () => {
             id="address"
             {...register('address', {
               required: 'This field is required',
-              pattern: {
-                value: /^(tb1|bcrt1|bc1)[a-zA-HJ-NP-Z0-9]{8,87}$/,
-                message: "Invalid Taproot address",
-              },
+              validate: (value) => {
+                const isValid = validateBitcoinAddress(value, currentNetwork);
+                if (!isValid) {
+                  return 'Invalid Bitcoin address';
+                }
+                return true;
+              }
             })}
           />
-          {
-            errors.address &&
-            <p className="text-sm text-red-400">
-              {errors.address.message}
-            </p>
-          }
+          {errors.address && <p className="text-sm text-red-400">{errors.address.message}</p>}
         </div>
         <div className="absolute bottom-0 left-0 w-full">
           <button
