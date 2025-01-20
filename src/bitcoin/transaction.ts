@@ -332,11 +332,7 @@ export const sendSats = async (
   
   const inputSize = INPUT_SIZES.p2tr;
 
-<<<<<<< HEAD
   let estimatedFee = Math.floor((BASE_OVERHEAD + inputSize + outputSize) * txfee);
-=======
-  let estimatedFee = (BASE_OVERHEAD + inputSize + outputSize) * txfee;
->>>>>>> a3cfd33e7f6c028ea341dbb527ff6c5434e90c92
 
   if (amountToBeSentSat < 0) {
     throw new Error("Not enough BTC to cover fees");
